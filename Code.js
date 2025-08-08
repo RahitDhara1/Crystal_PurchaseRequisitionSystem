@@ -51,14 +51,6 @@ function doGet(e) {
  * @param {Sheet} sheet The Google Sheet to get headers from.
  * @returns {Object} An object where keys are header names and values are column indices.
  */
-// function getHeaderMap(sheet) {
-//   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-//   const headerMap = {};
-//   headers.forEach((header, i) => {
-//     headerMap[header] = i;
-//   });
-//   return headerMap;
-// }
 function getHeaderMap(sheet) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const headerMap = {};
@@ -96,74 +88,6 @@ function updateRequisitionStatus(prID, status) {
 
 
 // Function to get data for the approval page
-// function getPendingRequisitions() {
-//   const cache = CacheService.getScriptCache();
-//   // Clear cache to ensure fresh data is fetched
-//   cache.remove('pendingRequisitions');
-//   const cached = cache.get('pendingRequisitions');
-//   if (cached) {
-//     return JSON.parse(cached);
-//   }
-
-//   const ss = SpreadsheetApp.getActiveSpreadsheet();
-//   const reqSheet = ss.getSheetByName('Requisitions');
-//   const itemsSheet = ss.getSheetByName('Items');
-  
-//   if (!reqSheet || !itemsSheet) {
-//     return { pendingRequisitions: '[]' };
-//   }
-
-//   const reqHeaders = getHeaderMap(reqSheet);
-//   const itemHeaders = getHeaderMap(itemsSheet);
-//   const reqData = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, reqSheet.getLastColumn()).getValues();
-//   const itemsData = itemsSheet.getRange(2, 1, itemsSheet.getLastRow() - 1, itemsSheet.getLastColumn()).getValues();
-
-//   // Only show those with Current Status = 'Requisition Submitted'
-//   const pendingRequisitions = reqData
-//     .map((row, index) => ({ data: row, rowIndex: index + 2 }))
-//     .filter(r => r.data[reqHeaders['Current Status']] === 'Requisition Submitted')
-//     .map(r => {
-//       const reqRow = r.data;
-//       const prID = reqRow[reqHeaders['Requisition ID']];
-      
-//       const itemsForReq = itemsData
-//         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
-//         .map(itemRow => ({
-//           itemName: itemRow[itemHeaders['Item Name']],
-//           purpose: itemRow[itemHeaders['Purpose / Application']],
-//           quantity: itemRow[itemHeaders['Quantity Required']],
-//           uom: itemRow[itemHeaders['Rate']],
-//           totalValue: itemRow[itemHeaders['Total Value (Incl. GST)']]
-//         }));
-
-//       const vendor = {
-//         name: reqRow[reqHeaders['Registered vendor company name']] || reqRow[reqHeaders['vendor company name']],
-//         contactPerson: reqRow[reqHeaders['Registered Vendor Contact Person Name']] || reqRow[reqHeaders['Vendor Contact Person Name']],
-//         contactNumber: reqRow[reqHeaders['Registered Vendor Contact Person Number']] || reqRow[reqHeaders['Vendor Contact Person Number']],
-//         email: reqRow[reqHeaders['Registered Vendor Email ID']] || reqRow[reqHeaders['Vendor Email ID']]
-//       };
-
-//       Logger.log('Vendor for PR %s: %s', prID, vendor.name);
-
-//       return {
-//         id: prID,
-//         date: reqRow[reqHeaders['Date of Requisition']],
-//         expectedDeliveryDate: reqRow[reqHeaders['Expected Delivery Date']],
-//         status: reqRow[reqHeaders['Approval Status']],
-//         totalValue: reqRow[reqHeaders['Total Value Incl. GST']],
-//         purchaseCategory: reqRow[reqHeaders['Purchase Category']],
-//         requestedBy: reqRow[reqHeaders['Requested By']],
-//         site: reqRow[reqHeaders['Site']],
-//         vendor: vendor,
-//         items: itemsForReq,
-//         rowIndex: r.rowIndex
-//       };
-//     });
-
-//   const result = { pendingRequisitions: JSON.stringify(pendingRequisitions) };
-//   cache.put('pendingRequisitions', JSON.stringify(result), 120); 
-//   return result;
-// }
 function getPendingRequisitions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
@@ -629,6 +553,9 @@ function submitPR(formData, lineItems) {
   const reqSheet = ss.getSheetByName('Requisitions');
   const itemsSheet = ss.getSheetByName('Items');
 
+  // New column headers for the Items sheet
+  const itemHeaders = getHeaderMap(itemsSheet);
+  
   const site = formData.site.replace(/\s+/g, '');
   const { serial, monthYear } = getNextPRSerial(site);
   const prID = `PR-${site}-${monthYear}/${serial}`;
@@ -680,17 +607,25 @@ function submitPR(formData, lineItems) {
   ];
   reqSheet.appendRow(masterRow);
 
-  // Save line items
-  lineItems.forEach(function(item) {
-    itemsSheet.appendRow([
-      prID,
-      item.description,
-      item.quantity,
-      item.uom,
-      item.unitPrice,
-      item.totalPrice
-      // Ensure this matches the columns in your 'Items' sheet
-    ]);
+  // Save line items with new headers
+  lineItems.forEach((item, index) => {
+    // Generate a simple sequential item ID
+    const itemID = prID + '-' + (index + 1).toString().padStart(2, '0');
+
+    const itemRow = [
+      prID, // Requisition ID
+      itemID, // Item ID
+      item.itemName, // Item Name
+      item.purpose, // Purpose / Application
+      item.quantity, // Quantity Required
+      item.uom, // UOM
+      item.rate, // Rate
+      item.gst, // GST
+      item.warranty, // Warranty, AMC
+      item.totalValue // Total Value (Incl. GST)
+    ];
+
+    itemsSheet.appendRow(itemRow);
   });
 
   return { success: true, prID: prID };
