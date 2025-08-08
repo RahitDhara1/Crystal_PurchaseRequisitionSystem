@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Requisition System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary-color: #2962ff;
+            --background-color: #f4f7fc;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --subtle-text-color: #6c757d;
+            --border-color: #e0e0e0;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            --blue-border: #4a90e2;
+            --yellow-border: #f5a623;
+            --green-border: #7ed321;
+            --purple-border: #9013fe;
+            --orange-border: #f8824a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        .header-wrapper {
+            background-color: var(--card-background);
+            padding: 10px 0;
+            box-shadow: var(--shadow);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .header-title i {
+            margin-right: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info span {
+            font-weight: 500;
+        }
+
+        .user-info .employee-btn {
+            padding: 8px 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Nav Bar */
+        .nav-bar-wrapper {
+            background-color: var(--primary-color);
+            margin-top: 20px;
+        }
+        
+        .nav-bar {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-bar a {
+            color: white;
+            text-decoration: none;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+
+        .nav-bar a.active,
+        .nav-bar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-bar a.active {
+            background-color: #1a53e0; /* A slightly darker blue */
+        }
+
+        /* Main Content */
+        .main-content {
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--card-background);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-left: 5px solid;
+        }
+
+        .stat-card.total { border-color: var(--blue-border); }
+        .stat-card.pending { border-color: var(--yellow-border); }
+        .stat-card.approved { border-color: var(--green-border); }
+        .stat-card.value { border-color: var(--purple-border); }
+        .stat-card.grn { border-color: var(--orange-border); }
+
+        .stat-card .icon {
+            font-size: 1.8rem;
+        }
+        .stat-card.total .icon { color: var(--blue-border); }
+        .stat-card.pending .icon { color: var(--yellow-border); }
+        .stat-card.approved .icon { color: var(--green-border); }
+        .stat-card.value .icon { color: var(--purple-border); }
+        .stat-card.grn .icon { color: var(--orange-border); }
+
+
+        .stat-card .info span {
+            display: block;
+            color: var(--subtle-text-color);
+            font-size: 0.9rem;
+        }
+
+        .stat-card .info strong {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        /* Recent Requisitions Table */
+        .recent-requisitions {
+            background-color: var(--card-background);
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .recent-requisitions h2 {
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .requisition-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .requisition-table th,
+        .requisition-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .requisition-table th {
+            color: var(--subtle-text-color);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .requisition-table td {
+            font-weight: 500;
+        }
+
+        .status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background-color: #fffbe6;
+            color: #f5a623;
+        }
+
+        .status-approved {
+            background-color: #f1f9eb;
+            color: #7ed321;
+        }
+
+        .status-po {
+            background-color: #eaf2ff;
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+
+    <!-- Navigation Bar -->
+
+    <!-- Main Content -->
+    <div class="main-content container">
+        <!-- Stats Cards -->
+        <section class="stats-container">
+            <div class="stat-card total">
+                <div class="icon"><i class="fas fa-file-alt"></i></div>
+                <div class="info">
+                    <span>Total Requisitions</span>
+                    <strong><?= stats.totalRequisitions ?></strong>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="icon"><i class="fas fa-file-import"></i></div>
+                <div class="info">
+                    <span>Pending PR Approval</span>
+                    <strong><?= stats.pendingPRApproval ?></strong>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="icon"><i class="fas fa-file-invoice-dollar"></i></div>
+                <div class="info">
+                    <span>Pending PO Approval</span>
+                    <strong><?= stats.pendingPOApproval ?></strong>
+                </div>
+            </div>
+            <div class="stat-card approved">
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+                <div class="info">
+                    <span>Approved</span>
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <strong style="font-size: 1.2rem;">PR: <?= stats.approvedPR ?></strong>
+                        <strong style="font-size: 1.2rem;">PO: <?= stats.approvedPO ?></strong>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="stat-card value">
+                <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+                <div class="info">
+                    <span>Total Value</span>
+                    <strong>$45,230</strong>
+                </div>
+            </div>
+            <div class="stat-card grn">
+                <div class="icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="info">
+                    <span>Pending GRN</span>
+                    <strong>1</strong>
+                </div>
+            </div> -->
+        </section>
+
+        <!-- Recent Requisitions -->
+        <section class="recent-requisitions">
+            <h2>Recent Requisitions</h2>
+            <table class="requisition-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Items</th>
+                        <th>Vendor</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <? if (stats.recentRequisitions && stats.recentRequisitions.length > 0) { ?>
+                        <? for (var i = 0; i < stats.recentRequisitions.length; i++) { ?>
+                            <? var req = stats.recentRequisitions[i]; ?>
+                            <tr>
+                                <td><?= req.id ?></td>
+                                <td><?= req.items ?></td>
+                                <td><?= req.vendor ?></td>
+                                <td><?= req.amount ?></td>
+                                <td><span class="status status-pending"><?= req.status ?></span></td>
+                                <td><?= req.date ?></td>
+                            </tr>
+                        <? } ?>
+                    <? } else { ?>
+                        <tr>
+                            <td colspan="6" style="text-align: center;">No recent requisitions found.</td>
+                        </tr>
+                    <? } ?>
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>
