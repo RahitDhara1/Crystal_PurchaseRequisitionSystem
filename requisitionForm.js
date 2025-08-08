@@ -218,7 +218,6 @@ function requisitionFormPage(user) {
                         </div>
                     </div>
                 </div>
-                <!-- Vendor Details Section -->
                 <div class="section hidden" id="vendorDetailsSection">
                   <h3>Vendor Details</h3>
                   <div id="registeredVendorFields" class="form-grid hidden">
@@ -322,12 +321,12 @@ function requisitionFormPage(user) {
         </div>
       </div>
       
-      <!-- Line Items and other sections -->
-
       <button type="submit">Submit Requisition</button>
     </form>
 
     <script>
+      let allVendorsData = []; // Store all vendor data globally
+
       document.addEventListener('DOMContentLoaded', function() {
         // Set today's date for the requisition date field
         const today = new Date();
@@ -335,9 +334,10 @@ function requisitionFormPage(user) {
         const mm = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-based
         const dd = String(today.getDate()).padStart(2, '0');
         document.getElementById('dateOfRequisition').value = \`\${yyyy}-\${mm}-\${dd}\`;
+      
+        // Add the first line item on page load
+        addLineItem();
       });
-
-      let allVendorsData = []; // Store all vendor data globally
 
       function toggleVendorFields() {
         const isRegistered = document.getElementById('isVendorRegistered').value === 'Yes';
@@ -411,6 +411,77 @@ function requisitionFormPage(user) {
         console.log("Form submitted. Calling server-side function...");
         // google.script.run.withSuccessHandler(...).submitPR(...)
       });
+
+      function addLineItem() {
+          const tableBody = document.getElementById('lineItemsBody');
+          const newRow = tableBody.insertRow();
+          newRow.innerHTML = \`
+              <td><input type="text" name="itemName" required></td>
+              <td><input type="text" name="purpose"></td>
+              <td><input type="number" name="quantity" min="1" oninput="calculateTotal(this)" required></td>
+              <td><select name="uom">
+                  <option value="">Select</option>
+                  <option>KGS</option>
+                  <option>PIECE</option>
+                  <option>NOS</option>
+                  <option>BOX</option>
+                  <option>MTR</option>
+                  <option>PKT</option>
+                  <option>M3</option>
+                  <option>SET</option>
+                  <option>FT</option>
+                  <option>LTR</option>
+                  <option>MM</option>
+                  <option>PAIRS</option>
+                  <option>RMT</option>
+                  <option>ROLL</option>
+                  <option>SQF</option>
+                  <option>SQM</option>
+                  <option>TROLLY</option>
+                  <option>GRAM</option>
+                  <option>BOTTLE</option>
+                  <option>BAGS</option>
+              </select></td>
+              <td><input type="number" name="rate" min="0" oninput="calculateTotal(this)" required></td>
+              <td><input type="number" name="gst" min="0" max="100" value="18" oninput="calculateTotal(this)" required></td>
+              <td><input type="text" name="warranty" placeholder="e.g., 1 year"></td>
+              <td><input type="number" name="totalValue" readonly></td>
+              <td><button type="button" class="remove-btn" onclick="removeLineItem(this)">×</button></td>
+          \`;
+      }
+
+      function removeLineItem(button) {
+          const row = button.parentNode.parentNode;
+          row.parentNode.removeChild(row);
+          updateGrandTotal();
+      }
+
+      function calculateTotal(input) {
+          const row = input.closest('tr');
+          const quantity = parseFloat(row.querySelector('[name="quantity"]').value) || 0;
+          const rate = parseFloat(row.querySelector('[name="rate"]').value) || 0;
+          const gst = parseFloat(row.querySelector('[name="gst"]').value) || 0;
+          const totalInput = row.querySelector('[name="totalValue"]');
+          
+          if (quantity > 0 && rate > 0) {
+              const subtotal = quantity * rate;
+              const total = subtotal + (subtotal * (gst / 100));
+              totalInput.value = total.toFixed(2);
+          } else {
+              totalInput.value = '';
+          }
+          updateGrandTotal();
+      }
+
+      function updateGrandTotal() {
+          const allTotals = document.querySelectorAll('#lineItemsBody [name="totalValue"]');
+          let grandTotal = 0;
+          allTotals.forEach(input => {
+              grandTotal += parseFloat(input.value) || 0;
+          });
+          // Assuming you have a grand total display element
+          // document.getElementById('grandTotalDisplay').innerText = grandTotal.toFixed(2);
+      }
     </script>
   `;
 }
