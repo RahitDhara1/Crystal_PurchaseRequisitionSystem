@@ -176,7 +176,7 @@ function requisitionFormPage(user) {
                         </div>
                         <div class="form-field">
                             <label>Requested By:
-                                <input type="text" name="requestedBy" id="requestedBy" value="${user.name}" readonly>
+                                <input type="text" name="requestedBy" id="requestedBy" required>
                             </label>
                         </div>
                         <div class="form-field">
@@ -443,7 +443,8 @@ function requisitionFormPage(user) {
             paymentTerms: form.paymentTerms.value,
             deliveryTerms: form.deliveryTerms.value,
             expectedDeliveryDate: form.expectedDeliveryDate.value,
-            deliveryLocation: form.deliveryLocation.value
+            deliveryLocation: form.deliveryLocation.value,
+            requestedBy: form.requestedBy.value // Manually entered name
         };
 
         // Handle vendor details based on selection
@@ -477,6 +478,7 @@ function requisitionFormPage(user) {
                 uom: row.querySelector('[name="uom"]').value,
                 rate: row.querySelector('[name="rate"]').value,
                 gst: row.querySelector('[name="gst"]').value,
+                warranty: row.querySelector('[name="warranty"]').value,
                 totalValue: row.querySelector('[name="totalValue"]').value
             };
             lineItems.push(item);

@@ -613,7 +613,7 @@ function submitPR(formData, lineItems) {
     formData.purchaseCategory, // Purchase Category
     formData.paymentTerms, // Payment Terms
     formData.deliveryTerms, // Delivery Terms
-    formData.requestedBy, // Requested By
+    Session.getActiveUser().getEmail().split('@')[0], // Requested By (Updated)
     formData.site, // Site
     formData.deliveryLocation, // Delivery Location
     formData.isVendorRegistered, // Is the Vendor Registered with Us?
@@ -624,7 +624,7 @@ function submitPR(formData, lineItems) {
     '', // Approved PR Link
     '', // PDF Link
     '', // Approval Link(View)
-    formData.emailAddress, // Email Address
+    Session.getActiveUser().getEmail(), // Email Address (Updated)
     formData.expectedDeliveryDate // Expected Delivery Date
   ];
   reqSheet.appendRow(masterRow);
