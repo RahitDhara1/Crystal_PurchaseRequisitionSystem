@@ -4,23 +4,17 @@ function requisitionApprovalPage(data) {
 
     let listHtml = '';
     if (pendingRequisitions.length === 0) {
-        listHtml = '<p>No pending requisitions for approval.</p>';
+        listHtml = '<p class="no-pending">No pending requisitions for approval.</p>';
     } else {
         listHtml = pendingRequisitions.map(req => `
             <div class="requisition-card">
-                <div class="card-header">
-                    <h3>Requisition: ${req.id}</h3>
-                    <div class="req-status">${req.status}</div>
-                </div>
-                <div class="card-body">
-                    <p><strong>Requested By:</strong> ${req.requestedBy}</p>
-                    <p><strong>Site:</strong> ${req.site}</p>
-                    <p><strong>Date:</strong> ${new Date(req.date).toLocaleDateString()}</p>
-                    <p><strong>Total Value:</strong> ${req.totalValue}</p>
-                    <p><strong>Vendor:</strong> ${req.vendor ? req.vendor.companyName : 'N/A'}</p>
+                <div class="card-info">
+                    <span class="pr-id">#${req.id}</span>
+                    <span class="requested-by">by ${req.requestedBy}</span>
+                    <span class="site">for ${req.site}</span>
                 </div>
                 <div class="card-actions">
-                    <button onclick="showDetails('${req.id}')">View Details</button>
+                    <button class="view-details-btn" onclick="window.showDetails('${req.id}')">View Details</button>
                 </div>
             </div>
         `).join('');
@@ -28,27 +22,57 @@ function requisitionApprovalPage(data) {
 
     return `
     <style>
-        /* Page-specific styles for approval page */
-        .container { max-width: 1100px; margin: 0 auto; padding: 0; }
-        h1 { color: var(--text-color); margin-bottom: 20px; }
-        .card {
-            background-color: var(--card-background); border-radius: 8px; box-shadow: var(--shadow);
-            margin-bottom: 15px; display: flex; align-items: center; padding: 20px;
-            transition: all 0.3s ease; cursor: pointer;
+        /* New Styles for the list view */
+        .requisition-list {
+            display: grid;
+            gap: 15px;
         }
-        .card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
-        .card.processing { opacity: 0.5; pointer-events: none; }
-        .card-main { flex-grow: 1; }
-        .card-main h4 { margin: 0 0 8px 0; color: var(--primary-color); }
-        .card-main p { margin: 4px 0; font-size: 0.9rem; color: var(--subtle-text-color); }
-        .card-actions .btn { padding: 8px 16px; margin-left: 10px; }
-        .btn {
-            border: none; border-radius: 5px; color: white; cursor: pointer;
-            font-weight: 500; font-size: 0.9rem; transition: background-color 0.2s;
+        .requisition-card {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--primary-color);
+            transition: all 0.2s ease;
         }
-        .btn-approve { background-color: var(--green); }
-        .btn-reject { background-color: var(--red); }
-        .no-pending { text-align: center; padding: 40px; font-size: 1.1rem; color: var(--subtle-text-color); cursor: default; }
+        .requisition-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .card-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1rem;
+        }
+        .pr-id {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        .requested-by {
+            color: var(--text-color);
+        }
+        .site {
+            color: var(--subtle-text-color);
+            font-style: italic;
+        }
+        .view-details-btn {
+            background-color: #f0f4ff;
+            color: var(--primary-color);
+            border: 1px solid #e0e7ff;
+            border-radius: 5px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .view-details-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
         
         /* Modal Styles */
         .modal-overlay {
@@ -76,18 +100,19 @@ function requisitionApprovalPage(data) {
         .total-amount { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 15px; }
         .modal-footer { padding: 15px 25px; text-align: right; background-color: #fafafa; border-top: 1px solid var(--border-color); }
         #modal-remarks { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; min-height: 50px; margin-bottom: 15px; }
+        .no-pending { text-align: center; padding: 40px; font-size: 1.1rem; color: var(--subtle-text-color); cursor: default; }
     </style>
 
     <div class="container">
         <h1>Pending Approvals</h1>
-        <div id="requisition-list">${listHtml}</div>
+        <div id="requisition-list" class="requisition-list">${listHtml}</div>
     </div>
 
     <div class="modal-overlay" id="details-modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modal-title">Requisition Details</h2>
-                <button class="modal-close" onclick="hideModal()">&times;</button>
+                <button class="modal-close" onclick="window.hideModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-grid">
@@ -118,7 +143,7 @@ function requisitionApprovalPage(data) {
         const requisitions = ${JSON.stringify(pendingRequisitions)};
         const modal = document.getElementById('details-modal');
 
-        function showModal(prID) {
+        window.showDetails = function(prID) {
             const req = requisitions.find(r => r.id === prID);
             if (!req) return;
 
@@ -160,18 +185,18 @@ function requisitionApprovalPage(data) {
             document.getElementById('modal-total-amount').innerText = 'Total Amount: ₹' + parseFloat(req.totalValue).toFixed(2);
             
             // Set up modal buttons
-            document.getElementById('modal-approve-btn').onclick = () => handleApproval(prID, 'Approved');
-            document.getElementById('modal-reject-btn').onclick = () => handleApproval(prID, 'Rejected');
+            document.getElementById('modal-approve-btn').onclick = () => window.handleApproval(prID, 'Approved');
+            document.getElementById('modal-reject-btn').onclick = () => window.handleApproval(prID, 'Rejected');
 
             modal.style.display = 'flex';
         }
 
-        function hideModal() {
+        window.hideModal = function() {
             modal.style.display = 'none';
             document.getElementById('modal-remarks').value = '';
         }
 
-        function handleApproval(prID, action, fromCard = false) {
+        window.handleApproval = function(prID, action, fromCard = false) {
             const remarks = fromCard ? '' : document.getElementById('modal-remarks').value;
             
             if (action === 'Rejected' && !remarks && !fromCard) {
@@ -181,7 +206,7 @@ function requisitionApprovalPage(data) {
 
             const card = document.getElementById('card-' + prID);
             card.classList.add('processing');
-            if (!fromCard) hideModal();
+            if (!fromCard) window.hideModal();
 
             google.script.run
                 .withSuccessHandler(response => {
@@ -204,7 +229,7 @@ function requisitionApprovalPage(data) {
         // Close modal on overlay click
         window.onclick = function(event) {
             if (event.target == modal) {
-                hideModal();
+                window.hideModal();
             }
         }
     </script>
