@@ -340,7 +340,10 @@ function requisitionFormPage(user) {
       
               <button type="submit">Submit Requisition</button>
             </form>
-
+            <div id="msg"></div>
+        </div>
+    </div>
+    <div id="loader"><div style="display:flex;flex-direction:column;align-items:center;"><div class="spinner"></div><span id="loader-text">Loading...</span></div></div>
     <script>
       let allVendorsData = []; // Store all vendor data globally
 
