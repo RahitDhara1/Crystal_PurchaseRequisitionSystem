@@ -83,7 +83,6 @@ function requisitionApprovalPage(data) {
         <div id="requisition-list">${listHtml}</div>
     </div>
 
-    <!-- Modal Structure -->
     <div class="modal-overlay" id="details-modal">
         <div class="modal-content">
             <div class="modal-header">
