@@ -424,9 +424,126 @@ function requisitionFormPage(user) {
       // Add your form submission logic here
       document.getElementById('prForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        // Show a loading indicator
-        console.log("Form submitted. Calling server-side function...");
-        // google.script.run.withSuccessHandler(...).submitPR(...)
+        
+        const form = e.target;
+        const submitBtn = document.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        showLoader('Submitting Requisition...');
+
+        const formData = {
+            dateOfRequisition: form.dateOfRequisition.value,
+            site: form.site.value,
+            purchaseCategory: form.purchaseCategory.value,
+            isVendorRegistered: form.isVendorRegistered.value,
+            isCustomerReimbursable: form.isCustomerReimbursable.value,
+            paymentTerms: form.paymentTerms.value,
+            deliveryTerms: form.deliveryTerms.value,
+            expectedDeliveryDate: form.expectedDeliveryDate.value,
+            deliveryLocation: form.deliveryLocation.value
+        };
+
+        // Handle vendor details based on selection
+        if (formData.isVendorRegistered === 'Yes') {
+            formData.vendorId = document.getElementById('vendorSelect').value;
+        } else {
+            formData.companyName = document.querySelector('#unregisteredVendorFields input[name="companyName"]').value;
+            formData.contactPerson = document.querySelector('#unregisteredVendorFields input[name="contactPerson"]').value;
+            formData.contactNumber = document.querySelector('#unregisteredVendorFields input[name="contactNumber"]').value;
+            formData.emailId = document.querySelector('#unregisteredVendorFields input[name="emailId"]').value;
+            formData.bankName = document.querySelector('#unregisteredVendorFields input[name="bankName"]').value;
+            formData.accHolderName = document.querySelector('#unregisteredVendorFields input[name="accHolderName"]').value;
+            formData.accNumber = document.querySelector('#unregisteredVendorFields input[name="accNumber"]').value;
+            formData.branchName = document.querySelector('#unregisteredVendorFields input[name="branchName"]').value;
+            formData.ifscCode = document.querySelector('#unregisteredVendorFields input[name="ifscCode"]').value;
+            formData.gstNumber = document.querySelector('#unregisteredVendorFields input[name="gstNumber"]').value;
+            formData.vendorPanNo = document.querySelector('#unregisteredVendorFields input[name="vendorPanNo"]').value;
+            formData.vendorAddress = document.querySelector('#unregisteredVendorFields input[name="vendorAddress"]').value;
+            // Get selected providing sites from checkboxes
+            const selectedSites = Array.from(document.querySelectorAll('#providingSitesCheckboxes input[name="providingSites"]:checked'))
+                                     .map(cb => cb.value);
+            formData.providingSites = selectedSites;
+        }
+
+        const lineItems = [];
+        document.querySelectorAll('#lineItemsBody tr').forEach(row => {
+            const item = {
+                itemName: row.querySelector('[name="itemName"]').value,
+                purpose: row.querySelector('[name="purpose"]').value,
+                quantity: row.querySelector('[name="quantity"]').value,
+                uom: row.querySelector('[name="uom"]').value,
+                rate: row.querySelector('[name="rate"]').value,
+                gst: row.querySelector('[name="gst"]').value,
+                totalValue: row.querySelector('[name="totalValue"]').value
+            };
+            lineItems.push(item);
+        });
+
+        // Handle file uploads
+        const fileUploads = {
+            quotationPI: form.quotationPI,
+            supportingDocs: form.supportingDocs
+        };
+        
+        // This is a simplified example. A more robust solution would handle multiple files.
+        const quotationFile = fileUploads.quotationPI.files[0];
+        const supportingDocsFile = fileUploads.supportingDocs.files[0];
+
+        const filePromises = [];
+        if (quotationFile) {
+            filePromises.push(toBase64(quotationFile).then(base64 => {
+                return new Promise(resolve => {
+                    google.script.run
+                        .withSuccessHandler(url => resolve({ name: 'quotationPI', url: url }))
+                        .withFailureHandler(() => resolve({ name: 'quotationPI', url: '' }))
+                        .uploadFile({ name: quotationFile.name, mimeType: quotationFile.type, base64: base64 }, 'Quotation_Attachments');
+                });
+            }));
+        }
+
+        if (supportingDocsFile) {
+             filePromises.push(toBase64(supportingDocsFile).then(base64 => {
+                return new Promise(resolve => {
+                    google.script.run
+                        .withSuccessHandler(url => resolve({ name: 'supportingDocs', url: url }))
+                        .withFailureHandler(() => resolve({ name: 'supportingDocs', url: '' }))
+                        .uploadFile({ name: supportingDocsFile.name, mimeType: supportingDocsFile.type, base64: base64 }, 'Supporting_Documents');
+                });
+            }));
+        }
+
+        Promise.all(filePromises).then(results => {
+            results.forEach(result => {
+                if (result.name === 'quotationPI') formData.quotationPI = result.url;
+                if (result.name === 'supportingDocs') formData.supportingDocs = result.url;
+            });
+            
+            // Call the server-side function
+            google.script.run
+                .withSuccessHandler(resp => {
+                    hideLoader();
+                    const msgDiv = document.getElementById('msg');
+                    if (resp && resp.success) {
+                        msgDiv.textContent = 'Requisition submitted successfully! PR ID: ' + resp.prID;
+                        msgDiv.className = 'success';
+                        form.reset();
+                        document.getElementById('lineItemsBody').innerHTML = ''; // Clear line items
+                        addLineItem(); // Add one empty line item
+                        updateGrandTotal();
+                    } else {
+                        msgDiv.textContent = 'Submission failed. Please try again.';
+                        msgDiv.className = 'error';
+                    }
+                    submitBtn.disabled = false;
+                })
+                .withFailureHandler(err => {
+                    hideLoader();
+                    document.getElementById('msg').textContent = 'Submission failed: ' + err.message;
+                    document.getElementById('msg').className = 'error';
+                    submitBtn.disabled = false;
+                })
+                .submitPR(formData, lineItems);
+        });
       });
 
       function addLineItem() {
@@ -515,6 +632,25 @@ function requisitionFormPage(user) {
           document.getElementById('subtotalDisplay').innerText = '₹' + grandSubtotal.toFixed(2);
           document.getElementById('gstDisplay').innerText = '₹' + grandGST.toFixed(2);
           document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
+      }
+      
+      // Helper functions for loader and file upload
+      function showLoader(text) {
+          document.getElementById('loader-text').textContent = text;
+          document.getElementById('loader').style.display = 'flex';
+      }
+
+      function hideLoader() {
+          document.getElementById('loader').style.display = 'none';
+      }
+
+      function toBase64(file) {
+          return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result.split(',')[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+          });
       }
     </script>
   `;
