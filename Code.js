@@ -114,15 +114,27 @@ function getPendingRequisitions() {
       const itemsForReq = itemsData
         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
         .map(itemRow => ({
-          description: itemRow[itemHeaders['Item Description']],
-          quantity: itemRow[itemHeaders['Quantity']],
+          itemId: itemRow[itemHeaders['Item ID']],
+          itemName: itemRow[itemHeaders['Item Name']],
+          purpose: itemRow[itemHeaders['Purpose / Application']],
+          quantity: itemRow[itemHeaders['Quantity Required']],
           uom: itemRow[itemHeaders['UOM']],
-          unitPrice: itemRow[itemHeaders['Unit Price']],
-          totalPrice: itemRow[itemHeaders['Total Price']],
+          rate: itemRow[itemHeaders['Rate']],
+          gst: itemRow[itemHeaders['GST']],
+          warranty: itemRow[itemHeaders['Warranty, AMC']],
+          totalValue: itemRow[itemHeaders['Total Value (Incl. GST)']]
         }));
 
       const vendorId = reqRow[reqHeaders['Vendor ID']];
-      const vendor = getVendorDetails(vendorId); // Fetch vendor details
+      const vendorDetails = getVendorDetails(vendorId); 
+
+      // Map vendor details to camelCase keys for client-side
+      const vendor = vendorDetails ? {
+        companyName: vendorDetails['COMPANY NAME'],
+        contactPerson: vendorDetails['CONTACT PERSON'],
+        contactNumber: vendorDetails['CONTACT NUMBER'],
+        email: vendorDetails['EMAIL ID']
+      } : {};
 
       return {
         id: prID,
@@ -184,15 +196,24 @@ function getPendingPOs() {
       const itemsForReq = itemsData
         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
         .map(itemRow => ({
-          description: itemRow[itemHeaders['Item Description']],
-          quantity: itemRow[itemHeaders['Quantity']],
+          itemName: itemRow[itemHeaders['Item Name']],
+          purpose: itemRow[itemHeaders['Purpose / Application']],
+          quantity: itemRow[itemHeaders['Quantity Required']],
           uom: itemRow[itemHeaders['UOM']],
-          unitPrice: itemRow[itemHeaders['Rate']],
-          totalPrice: itemRow[itemHeaders['Total Value (Incl. GST)']],
+          rate: itemRow[itemHeaders['Rate']],
+          gst: itemRow[itemHeaders['GST']],
+          warranty: itemRow[itemHeaders['Warranty, AMC']],
+          totalValue: itemRow[itemHeaders['Total Value (Incl. GST)']]
         }));
       
       const vendorId = reqRow[reqHeaders['Vendor ID']];
-      const vendor = getVendorDetails(vendorId); // Fetch vendor details
+      const vendorDetails = getVendorDetails(vendorId); 
+      const vendor = vendorDetails ? {
+        companyName: vendorDetails['COMPANY NAME'],
+        contactPerson: vendorDetails['CONTACT PERSON'],
+        contactNumber: vendorDetails['CONTACT NUMBER'],
+        email: vendorDetails['EMAIL ID']
+      } : {};
 
       return {
         poId: poInfo.id,
@@ -470,6 +491,7 @@ function getRequisitionDetailsForPO(prID) {
       uom: itemRow[itemHeaders['UOM']],
       rate: itemRow[itemHeaders['Rate']],
       gst: itemRow[itemHeaders['GST']],
+      warranty: itemRow[itemHeaders['Warranty, AMC']],
       totalCost: itemRow[itemHeaders['Total Value (Incl. GST)']] 
     }));
   
