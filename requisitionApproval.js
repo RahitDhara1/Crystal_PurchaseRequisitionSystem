@@ -8,10 +8,16 @@ function requisitionApprovalPage(data) {
     } else {
         listHtml = pendingRequisitions.map(req => `
             <div class="requisition-card">
-                <div class="card-info">
-                    <span class="pr-id">#${req.id}</span>
-                    <span class="requested-by">by ${req.requestedBy}</span>
-                    <span class="site">for ${req.site}</span>
+                <div class="card-left">
+                    <div class="card-id-row">
+                        <span class="pr-id">${req.id}</span>
+                        <span class="requested-by">by ${req.requestedBy}</span>
+                    </div>
+                    <div class="card-details-row">
+                        <span class="site">Site: ${req.site}</span>
+                        <span class="submission-date">Submitted: ${req.date ? new Date(req.date).toLocaleDateString() : 'N/A'}</span>
+                        <span class="item-count">${req.items ? req.items.length : 0} items</span>
+                    </div>
                 </div>
                 <div class="card-actions">
                     <button class="view-details-btn" onclick="window.showDetails('${req.id}')">View Details</button>
@@ -35,34 +41,46 @@ function requisitionApprovalPage(data) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-left: 5px solid var(--primary-color);
+            border-left: 5px solid #007bff; /* A new color */
             transition: all 0.2s ease;
         }
         .requisition-card:hover {
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             transform: translateY(-2px);
         }
-        .card-info {
+        .card-left {
+            display: flex;
+            flex-direction: column;
+        }
+        .card-id-row {
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 1rem;
+            gap: 10px;
+            font-size: 1.1rem;
         }
         .pr-id {
             font-weight: 600;
-            color: var(--primary-color);
+            color: #007bff;
         }
         .requested-by {
             color: var(--text-color);
+            font-weight: 500;
         }
-        .site {
+        .card-details-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 0.9rem;
             color: var(--subtle-text-color);
+            margin-top: 5px;
+        }
+        .submission-date, .site, .item-count {
             font-style: italic;
         }
         .view-details-btn {
-            background-color: #f0f4ff;
-            color: var(--primary-color);
-            border: 1px solid #e0e7ff;
+            background-color: #e6f0ff;
+            color: #007bff;
+            border: none;
             border-radius: 5px;
             padding: 8px 16px;
             cursor: pointer;
@@ -70,7 +88,7 @@ function requisitionApprovalPage(data) {
             transition: all 0.2s;
         }
         .view-details-btn:hover {
-            background-color: var(--primary-color);
+            background-color: #007bff;
             color: white;
         }
         
@@ -82,25 +100,81 @@ function requisitionApprovalPage(data) {
         .modal-content {
             background: white; border-radius: 8px; width: 90%; max-width: 800px;
             max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            padding: 30px;
         }
         .modal-header {
-            padding: 15px 25px; border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
             display: flex; justify-content: space-between; align-items: center;
         }
-        .modal-header h2 { margin: 0; font-size: 1.4rem; }
+        .modal-header h2 { margin: 0; font-size: 1.4rem; color: #007bff; }
         .modal-close { font-size: 1.8rem; cursor: pointer; color: var(--subtle-text-color); border: none; background: none; }
-        .modal-body { padding: 25px; }
-        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px; }
-        .modal-section h4 { margin: 0 0 10px 0; color: var(--primary-color); border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .modal-section p { margin: 5px 0; font-size: 0.95rem; }
-        .items-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .items-table th, .items-table td { padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); }
-        .items-table th { background-color: #f8f9fa; font-weight: 500; }
-        .items-table td:nth-child(3), .items-table td:nth-child(4) { text-align: right; }
-        .total-amount { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 15px; }
-        .modal-footer { padding: 15px 25px; text-align: right; background-color: #fafafa; border-top: 1px solid var(--border-color); }
-        #modal-remarks { width: 100%; padding: 8px; border: 1px solid var(--border-color); border-radius: 4px; min-height: 50px; margin-bottom: 15px; }
+        .modal-body { padding-top: 25px; }
+        .modal-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 25px; 
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .modal-section h4 { 
+            margin: 0 0 10px 0; 
+            color: #333; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 5px; 
+            font-weight: 600;
+        }
+        .modal-section p { 
+            margin: 5px 0; 
+            font-size: 0.95rem; 
+            display: flex;
+            gap: 10px;
+        }
+        .modal-section p strong {
+            color: var(--subtle-text-color);
+            font-weight: 500;
+            min-width: 150px;
+        }
+        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .items-table th, .items-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .items-table th { background-color: #e9ecef; font-weight: 600; color: #555; }
+        .total-amount { 
+            text-align: right; 
+            font-size: 1.2rem; 
+            font-weight: bold; 
+            margin-top: 15px;
+            padding: 10px 0;
+            border-top: 2px solid #333;
+        }
+        .modal-footer { 
+            padding-top: 20px; 
+            text-align: right; 
+            border-top: 1px solid var(--border-color);
+        }
+        #modal-remarks { 
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid var(--border-color); 
+            border-radius: 4px; 
+            min-height: 80px; 
+            margin-bottom: 15px;
+        }
         .no-pending { text-align: center; padding: 40px; font-size: 1.1rem; color: var(--subtle-text-color); cursor: default; }
+        .btn {
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 1rem;
+            padding: 10px 20px;
+            transition: background-color 0.2s;
+            margin-left: 10px;
+        }
+        .btn-approve { background-color: #28a745; }
+        .btn-reject { background-color: #dc3545; }
     </style>
 
     <div class="container">
@@ -111,13 +185,28 @@ function requisitionApprovalPage(data) {
     <div class="modal-overlay" id="details-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Requisition Details</h2>
+                <h2 id="modal-title"></h2>
                 <button class="modal-close" onclick="window.hideModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-grid">
-                    <div class="modal-section" id="modal-req-info"></div>
-                    <div class="modal-section" id="modal-vendor-info"></div>
+                    <div class="modal-section">
+                        <h4>Requisition Information</h4>
+                        <p><strong>ID:</strong> <span id="modal-req-id"></span></p>
+                        <p><strong>Employee:</strong> <span id="modal-req-employee"></span></p>
+                        <p><strong>Site:</strong> <span id="modal-req-site"></span></p>
+                        <p><strong>Date:</strong> <span id="modal-req-date"></span></p>
+                        <p><strong>Expected Delivery:</strong> <span id="modal-req-delivery-date"></span></p>
+                        <p><strong>Status:</strong> <span id="modal-req-status" style="color: #f0ad4e; font-weight: bold;"></span></p>
+                        <p><strong>Purchase Category:</strong> <span id="modal-req-category"></span></p>
+                    </div>
+                    <div class="modal-section">
+                        <h4>Vendor Information</h4>
+                        <p><strong>Company Name:</strong> <span id="modal-vendor-company"></span></p>
+                        <p><strong>Contact Person:</strong> <span id="modal-vendor-contact-person"></span></p>
+                        <p><strong>Email:</strong> <span id="modal-vendor-email"></span></p>
+                        <p><strong>Phone:</strong> <span id="modal-vendor-phone"></span></p>
+                    </div>
                 </div>
                 <div class="modal-section">
                     <h4>Items</h4>
@@ -150,34 +239,30 @@ function requisitionApprovalPage(data) {
             document.getElementById('modal-title').innerText = 'Requisition Details: ' + prID;
             
             // Requisition Info
-            document.getElementById('modal-req-info').innerHTML = \`
-                <h4>Requisition Information</h4>
-                <p><strong>ID:</strong> \${req.id}</p>
-                <p><strong>Employee:</strong> \${req.requestedBy}</p>
-                <p><strong>Site:</strong> \${req.site || 'N/A'}</p>
-                <p><strong>Date:</strong> \${req.date ? new Date(req.date).toLocaleDateString() : 'N/A'}</p>
-                <p><strong>Expected Delivery:</strong> \${req.expectedDeliveryDate ? new Date(req.expectedDeliveryDate).toLocaleDateString() : 'N/A'}</p>
-                <p><strong>Status:</strong> <span style="color: #f0ad4e; font-weight: bold;">\${req.status}</span></p>
-            \`;
+            document.getElementById('modal-req-id').innerText = req.id || 'N/A';
+            document.getElementById('modal-req-employee').innerText = req.requestedBy || 'N/A';
+            document.getElementById('modal-req-site').innerText = req.site || 'N/A';
+            document.getElementById('modal-req-date').innerText = req.date ? new Date(req.date).toLocaleDateString() : 'N/A';
+            document.getElementById('modal-req-delivery-date').innerText = req.expectedDeliveryDate ? new Date(req.expectedDeliveryDate).toLocaleDateString() : 'N/A';
+            document.getElementById('modal-req-status').innerText = req.status || 'N/A';
+            document.getElementById('modal-req-category').innerText = req.purchaseCategory || 'N/A';
 
             // Vendor Info
-            document.getElementById('modal-vendor-info').innerHTML = \`
-                <h4>Vendor Information</h4>
-                <p><strong>Company Name:</strong> \${req.vendor.name || req.vendor.companyName || 'N/A'}</p>
-                <p><strong>Contact Person:</strong> \${req.vendor.contactPerson || 'N/A'}</p>
-                <p><strong>Email:</strong> \${req.vendor.email || 'N/A'}</p>
-                <p><strong>Phone:</strong> \${req.vendor.contactNumber || 'N/A'}</p>
-            \`;
+            document.getElementById('modal-vendor-company').innerText = (req.vendor && req.vendor.companyName) ? req.vendor.companyName : 'N/A';
+            document.getElementById('modal-vendor-contact-person').innerText = (req.vendor && req.vendor.contactPerson) ? req.vendor.contactPerson : 'N/A';
+            document.getElementById('modal-vendor-email').innerText = (req.vendor && req.vendor.email) ? req.vendor.email : 'N/A';
+            document.getElementById('modal-vendor-phone').innerText = (req.vendor && req.vendor.contactNumber) ? req.vendor.contactNumber : 'N/A';
+
 
             // Items Table
             const itemsTbody = document.getElementById('modal-items-table');
             itemsTbody.innerHTML = (req.items && req.items.length > 0)
               ? req.items.map(item => \`
                 <tr>
-                    <td>\${item.itemName}</td>
-                    <td>\${item.quantity} \${item.uom}</td>
-                    <td>₹\${parseFloat(item.rate).toFixed(2)}</td>
-                    <td>₹\${parseFloat(item.totalValue).toFixed(2)}</td>
+                    <td>\${item.description || item.itemName}</td>
+                    <td>\${item.quantity || 'N/A'} \${item.uom || 'N/A'}</td>
+                    <td>₹\${parseFloat(item.unitPrice || item.rate).toFixed(2)}</td>
+                    <td>₹\${parseFloat(item.totalPrice || item.totalValue).toFixed(2)}</td>
                 </tr>
               \`).join('')
               : '<tr><td colspan="4" style="text-align:center;">No items found for this requisition.</td></tr>';
