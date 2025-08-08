@@ -295,34 +295,51 @@ function requisitionFormPage(user) {
                     </table>
                     <button type="button" class="add-btn" onclick="addLineItem()"><i class="fas fa-plus"></i> Add Item</button>
                 </div>
+                
+                <div class="submission-container">
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotalDisplay">₹0.00</span>
+                        </div>
+                        <div class="total-row">
+                            <span>GST Amount:</span>
+                            <span id="gstDisplay">₹0.00</span>
+                        </div>
+                        <div class="total-row grand-total">
+                            <span>Grand Total:</span>
+                            <span id="grandTotalDisplay">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
 
-        <div id="unregisteredVendorDetails">
-          <h4>New Vendor Details</h4>
-          <div class="form-row">
-            <div><label for="companyName">Company Name</label><input type="text" id="companyName" name="companyName"></div>
-            <div><label for="contactPerson">Contact Person</label><input type="text" id="contactPerson" name="contactPerson"></div>
-          </div>
-          <div class="form-row">
-            <div><label for="contactNumber">Contact Number</label><input type="text" id="contactNumber" name="contactNumber"></div>
-            <div><label for="emailId">Email ID</label><input type="email" id="emailId" name="emailId"></div>
-          </div>
-          <h4>Bank Details</h4>
-          <div class="form-row">
-            <div><label for="bankName">Bank Name</label><input type="text" id="bankName" name="bankName"></div>
-            <div><label for="accHolderName">Account Holder Name</label><input type="text" id="accHolderName" name="accHolderName"></div>
-          </div>
-          <div class="form-row">
-            <div><label for="accNumber">Account Number</label><input type="text" id="accNumber" name="accNumber"></div>
-            <div><label for="branchName">Branch Name</label><input type="text" id="branchName" name="branchName"></div>
-          </div>
-          <div class="form-row">
-            <div><label for="ifscCode">IFSC Code</label><input type="text" id="ifscCode" name="ifscCode"></div>
-          </div>
-        </div>
-      </div>
+                <div id="unregisteredVendorDetails">
+                  <h4>New Vendor Details</h4>
+                  <div class="form-row">
+                    <div><label for="companyName">Company Name</label><input type="text" id="companyName" name="companyName"></div>
+                    <div><label for="contactPerson">Contact Person</label><input type="text" id="contactPerson" name="contactPerson"></div>
+                  </div>
+                  <div class="form-row">
+                    <div><label for="contactNumber">Contact Number</label><input type="text" id="contactNumber" name="contactNumber"></div>
+                    <div><label for="emailId">Email ID</label><input type="email" id="emailId" name="emailId"></div>
+                  </div>
+                  <h4>Bank Details</h4>
+                  <div class="form-row">
+                    <div><label for="bankName">Bank Name</label><input type="text" id="bankName" name="bankName"></div>
+                    <div><label for="accHolderName">Account Holder Name</label><input type="text" id="accHolderName" name="accHolderName"></div>
+                  </div>
+                  <div class="form-row">
+                    <div><label for="accNumber">Account Number</label><input type="text" id="accNumber" name="accNumber"></div>
+                    <div><label for="branchName">Branch Name</label><input type="text" id="branchName" name="branchName"></div>
+                  </div>
+                  <div class="form-row">
+                    <div><label for="ifscCode">IFSC Code</label><input type="text" id="ifscCode" name="ifscCode"></div>
+                  </div>
+                </div>
+              </div>
       
-      <button type="submit">Submit Requisition</button>
-    </form>
+              <button type="submit">Submit Requisition</button>
+            </form>
 
     <script>
       let allVendorsData = []; // Store all vendor data globally
@@ -474,13 +491,30 @@ function requisitionFormPage(user) {
       }
 
       function updateGrandTotal() {
-          const allTotals = document.querySelectorAll('#lineItemsBody [name="totalValue"]');
+          const allRows = document.querySelectorAll('#lineItemsBody tr');
+          let grandSubtotal = 0;
+          let grandGST = 0;
           let grandTotal = 0;
-          allTotals.forEach(input => {
-              grandTotal += parseFloat(input.value) || 0;
+
+          allRows.forEach(row => {
+              const quantity = parseFloat(row.querySelector('[name="quantity"]').value) || 0;
+              const rate = parseFloat(row.querySelector('[name="rate"]').value) || 0;
+              const gst = parseFloat(row.querySelector('[name="gst"]').value) || 0;
+              
+              if (quantity > 0 && rate > 0) {
+                  const subtotal = quantity * rate;
+                  const gstAmount = subtotal * (gst / 100);
+                  const total = subtotal + gstAmount;
+
+                  grandSubtotal += subtotal;
+                  grandGST += gstAmount;
+                  grandTotal += total;
+              }
           });
-          // Assuming you have a grand total display element
-          // document.getElementById('grandTotalDisplay').innerText = grandTotal.toFixed(2);
+
+          document.getElementById('subtotalDisplay').innerText = '₹' + grandSubtotal.toFixed(2);
+          document.getElementById('gstDisplay').innerText = '₹' + grandGST.toFixed(2);
+          document.getElementById('grandTotalDisplay').innerText = '₹' + grandTotal.toFixed(2);
       }
     </script>
   `;
