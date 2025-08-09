@@ -7,7 +7,7 @@ function requisitionApprovalPage(data) {
         listHtml = '<p class="no-pending">No pending requisitions for approval.</p>';
     } else {
         listHtml = pendingRequisitions.map(req => `
-            <div class="requisition-card">
+            <div class="requisition-card" id="card-${req.id}">
                 <div class="card-left">
                     <div class="card-id-row">
                         <span class="pr-id">${req.id}</span>
@@ -222,8 +222,8 @@ function requisitionApprovalPage(data) {
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-reject" id="modal-reject-btn">Decline</button>
-                <button class="btn btn-approve" id="modal-approve-btn">Approve</button>
+                <button class="btn btn-reject" id="modal-reject-btn" onclick="window.handleApproval(prID, 'Rejected')">Decline</button>
+                <button class="btn btn-approve" id="modal-approve-btn" onclick="window.handleApproval(prID, 'Approved')">Approve</button>
             </div>
         </div>
     </div>
@@ -259,10 +259,10 @@ function requisitionApprovalPage(data) {
             itemsTbody.innerHTML = (req.items && req.items.length > 0)
               ? req.items.map(item => \`
                 <tr>
-                    <td>\${item.description || item.itemName}</td>
+                    <td>\${item.itemName || 'N/A'}</td>
                     <td>\${item.quantity || 'N/A'} \${item.uom || 'N/A'}</td>
-                    <td>₹\${parseFloat(item.unitPrice || item.rate).toFixed(2)}</td>
-                    <td>₹\${parseFloat(item.totalPrice || item.totalValue).toFixed(2)}</td>
+                    <td>₹\${parseFloat(item.rate).toFixed(2)}</td>
+                    <td>₹\${parseFloat(item.totalValue).toFixed(2)}</td>
                 </tr>
               \`).join('')
               : '<tr><td colspan="4" style="text-align:center;">No items found for this requisition.</td></tr>';
