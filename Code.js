@@ -568,7 +568,10 @@ function submitPR(formData, lineItems) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
   const itemsSheet = ss.getSheetByName('Items');
-
+  
+  // Create an object to map headers to their index
+  const itemsHeaders = getHeaderMap(itemsSheet);
+  
   const site = formData.site.replace(/\s+/g, '');
   const { serial, monthYear } = getNextPRSerial(site);
   const prID = `PR-${site}-${monthYear}/${serial}`;
@@ -632,16 +635,24 @@ function submitPR(formData, lineItems) {
   reqSheet.appendRow(masterRow);
 
   // Save line items
-  lineItems.forEach(function(item) {
-    itemsSheet.appendRow([
-      prID,
-      item.description,
-      item.quantity,
-      item.uom,
-      item.unitPrice,
-      item.totalPrice
-      // Ensure this matches the columns in your 'Items' sheet
-    ]);
+  lineItems.forEach((item, index) => {
+    // Generate a unique Item ID
+    const itemID = prID + '-' + (index + 1).toString().padStart(2, '0');
+    
+    // Create a row with all the required data in the correct order
+    const itemRow = new Array(itemsSheet.getLastColumn()).fill('');
+    itemRow[itemsHeaders['Requisition ID']] = prID;
+    itemRow[itemsHeaders['Item ID']] = itemID;
+    itemRow[itemsHeaders['Item Name']] = item.itemName;
+    itemRow[itemsHeaders['Purpose / Application']] = item.purpose;
+    itemRow[itemsHeaders['Quantity Required']] = item.quantity;
+    itemRow[itemsHeaders['UOM']] = item.uom;
+    itemRow[itemsHeaders['Rate']] = item.rate;
+    itemRow[itemsHeaders['GST']] = item.gst;
+    itemRow[itemsHeaders['Warranty, AMC']] = item.warranty;
+    itemRow[itemsHeaders['Total Value (Incl. GST)']] = item.totalValue;
+
+    itemsSheet.appendRow(itemRow);
   });
 
   return { success: true, prID: prID };
@@ -689,6 +700,8 @@ function addVendorToMaster(vendor) {
   const sheet = ss.getSheetByName('Vendor_Master');
   if (!sheet) throw new Error('Vendor_Master sheet not found');
   const lastRow = sheet.getLastRow();
+  const headers = getHeaderMap(sheet);
+  
   // Find last serial number
   let serial = 1;
   if (lastRow > 1) {
@@ -701,29 +714,31 @@ function addVendorToMaster(vendor) {
   }
   const year = (new Date().getFullYear() % 100).toString().padStart(2, '0');
   const vendorId = `V/${year}/CRPL/${serial.toString().padStart(3, '0')}`;
+  
   // Get providing sites as comma-separated string
   let providingSites = vendor.providingSites;
   if (Array.isArray(providingSites)) providingSites = providingSites.join(', ');
-  // Prepare row (no GST Certificate, add Providing Sites)
-  const row = [
-    vendorId,
-    vendor.companyName,
-    vendor.contactPerson,
-    vendor.contactNumber,
-    vendor.emailId,
-    vendor.bankName,
-    vendor.accHolderName,
-    vendor.accNumber,
-    vendor.branchName,
-    vendor.ifscCode,
-    vendor.gstNumber,
-    providingSites,
-    vendor.vendorPanNo,
-    vendor.vendorAddress,
-    vendor.vendorGSTCertificate,
-    vendor.vendorPANCard,
-    vendor.cancelledCheque
-  ];
+  
+  const row = new Array(sheet.getLastColumn()).fill('');
+  row[headers['VENDOR ID']] = vendorId;
+  row[headers['COMPANY NAME']] = vendor.companyName;
+  row[headers['CONTACT PERSON']] = vendor.contactPerson;
+  row[headers['CONTACT NUMBER']] = vendor.contactNumber;
+  row[headers['EMAIL ID']] = vendor.emailId;
+  row[headers['BANK NAME']] = vendor.bankName;
+  row[headers['ACC HOLDER NAME']] = vendor.accHolderName;
+  row[headers['ACC NUMBER']] = vendor.accNumber;
+  row[headers['BRANCH NAME']] = vendor.branchName;
+  row[headers['IFSC CODE']] = vendor.ifscCode;
+  row[headers['GST NUMBER']] = vendor.gstNumber;
+  row[headers['PROVIDING SITES']] = providingSites;
+  row[headers['VENDOR PAN NO']] = vendor.vendorPanNo;
+  row[headers['VENDOR ADDRESS']] = vendor.vendorAddress;
+  row[headers['GST Certificate']] = vendor.vendorGSTCertificate;
+  row[headers['Pan Card']] = vendor.vendorPANCard;
+  row[headers['Cancelled Cheque']] = vendor.cancelledCheque;
+  row[headers['Created By']] = Session.getActiveUser().getEmail();
+
   sheet.appendRow(row);
   return vendorId;
 }
