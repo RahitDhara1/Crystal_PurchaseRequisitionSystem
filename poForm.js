@@ -199,7 +199,7 @@ function poFormPage(user) {
           document.getElementById('site').value = details.site || '';
 
           // Vendor details
-          document.getElementById('vendorRegistered').value = details.vendorRegistered || '';
+          document.getElementById('vendorRegistered').value = details.isVendorRegistered || '';
           document.getElementById('vendorCompanyName').value = (details.vendor && details.vendor['COMPANY NAME']) ? details.vendor['COMPANY NAME'] : '';
           document.getElementById('vendorContactPerson').value = (details.vendor && details.vendor['CONTACT PERSON']) ? details.vendor['CONTACT PERSON'] : '';
           document.getElementById('vendorContactNumber').value = (details.vendor && details.vendor['CONTACT NUMBER']) ? details.vendor['CONTACT NUMBER'] : '';
