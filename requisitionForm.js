@@ -241,7 +241,7 @@ function requisitionFormPage(user) {
                     <div class="form-field"><label>Providing Sites: <input type="text" name="providingSites" id="providingSites" readonly></label></div>
                     <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo" id="vendorPanNo" readonly></label></div>
                     <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress" id="vendorAddress" readonly></label></div>
-                    </div>
+                  </div>
                   <div id="unregisteredVendorFields" class="form-grid hidden">
                     <div class="form-field"><label>Company Name: <input type="text" name="companyName" required></label></div>
                     <div class="form-field"><label>Contact Person: <input type="text" name="contactPerson" required></label></div>
@@ -253,6 +253,18 @@ function requisitionFormPage(user) {
                     <div class="form-field"><label>Branch Name: <input type="text" name="branchName" required></label></div>
                     <div class="form-field"><label>IFSC Code: <input type="text" name="ifscCode" required></label></div>
                     <div class="form-field"><label>GST Number: <input type="text" name="gstNumber"></label></div>
+                    <div class="form-field">
+                      <label>Providing Sites:</label>
+                      <div id="providingSitesCheckboxes">
+                        <label><input type="checkbox" name="providingSites" value="Bhubaneswar"> Bhubaneswar</label>
+                        <label><input type="checkbox" name="providingSites" value="Detroj"> Detroj</label>
+                        <label><input type="checkbox" name="providingSites" value="Dhulagarh"> Dhulagarh</label>
+                        <label><input type="checkbox" name="providingSites" value="Kheda"> Kheda</label>
+                        <label><input type="checkbox" name="providingSites" value="Kolkata"> Kolkata</label>
+                        <label><input type="checkbox" name="providingSites" value="Noida"> Noida</label>
+                        <label><input type="checkbox" name="providingSites" value="Pune"> Pune</label>
+                      </div>
+                    </div>
                     <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo"></label></div>
                     <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress"></label></div>
                     <div class="form-field"><label>Vendor GST Certificate: <input type="file" name="vendorGSTCertificate" required></label></div>
