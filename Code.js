@@ -85,9 +85,6 @@ function updateRequisitionStatus(prID, status) {
   }
 }
 
-
-
-// Function to get data for the approval page
 function getPendingRequisitions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
@@ -128,7 +125,6 @@ function getPendingRequisitions() {
       const vendorId = reqRow[reqHeaders['Vendor ID']];
       const vendorDetails = getVendorDetails(vendorId); 
 
-      // Map vendor details to camelCase keys for client-side
       const vendor = vendorDetails ? {
         companyName: vendorDetails['COMPANY NAME'],
         contactPerson: vendorDetails['CONTACT PERSON'],
@@ -156,7 +152,6 @@ function getPendingRequisitions() {
 }
 
 
-// Function to get data for the PO approval page
 function getPendingPOs() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
@@ -491,7 +486,6 @@ function getRequisitionDetailsForPO(prID) {
       uom: itemRow[itemHeaders['UOM']],
       rate: itemRow[itemHeaders['Rate']],
       gst: itemRow[itemHeaders['GST']],
-      warranty: itemRow[itemHeaders['Warranty, AMC']],
       totalCost: itemRow[itemHeaders['Total Value (Incl. GST)']] 
     }));
   
@@ -575,9 +569,6 @@ function submitPR(formData, lineItems) {
   const reqSheet = ss.getSheetByName('Requisitions');
   const itemsSheet = ss.getSheetByName('Items');
 
-  // New column headers for the Items sheet
-  const itemHeaders = getHeaderMap(itemsSheet);
-  
   const site = formData.site.replace(/\s+/g, '');
   const { serial, monthYear } = getNextPRSerial(site);
   const prID = `PR-${site}-${monthYear}/${serial}`;
@@ -596,7 +587,18 @@ function submitPR(formData, lineItems) {
       contactNumber: formData.contactNumber,
       emailId: formData.emailId,
       // You may need to pass more fields from your form for a complete vendor profile
-      providingSites: [formData.site] 
+      providingSites: formData.providingSites.join(', '),
+      bankName: formData.bankName,
+      accHolderName: formData.accHolderName,
+      accNumber: formData.accNumber,
+      branchName: formData.branchName,
+      ifscCode: formData.ifscCode,
+      gstNumber: formData.gstNumber,
+      vendorPanNo: formData.vendorPanNo,
+      vendorAddress: formData.vendorAddress,
+      vendorGSTCertificate: formData.vendorGSTCertificate,
+      vendorPANCard: formData.vendorPANCard,
+      cancelledCheque: formData.cancelledCheque
     };
     vendorId = addVendorToMaster(newVendor);
   }
@@ -613,7 +615,7 @@ function submitPR(formData, lineItems) {
     formData.purchaseCategory, // Purchase Category
     formData.paymentTerms, // Payment Terms
     formData.deliveryTerms, // Delivery Terms
-    Session.getActiveUser().getEmail().split('@')[0], // Requested By (Updated)
+    formData.requestedBy, // Requested By
     formData.site, // Site
     formData.deliveryLocation, // Delivery Location
     formData.isVendorRegistered, // Is the Vendor Registered with Us?
@@ -624,30 +626,22 @@ function submitPR(formData, lineItems) {
     '', // Approved PR Link
     '', // PDF Link
     '', // Approval Link(View)
-    Session.getActiveUser().getEmail(), // Email Address (Updated)
+    formData.emailAddress, // Email Address
     formData.expectedDeliveryDate // Expected Delivery Date
   ];
   reqSheet.appendRow(masterRow);
 
-  // Save line items with new headers
-  lineItems.forEach((item, index) => {
-    // Generate a simple sequential item ID
-    const itemID = prID + '-' + (index + 1).toString().padStart(2, '0');
-
-    const itemRow = [
-      prID, // Requisition ID
-      itemID, // Item ID
-      item.itemName, // Item Name
-      item.purpose, // Purpose / Application
-      item.quantity, // Quantity Required
-      item.uom, // UOM
-      item.rate, // Rate
-      item.gst, // GST
-      item.warranty, // Warranty, AMC
-      item.totalValue // Total Value (Incl. GST)
-    ];
-
-    itemsSheet.appendRow(itemRow);
+  // Save line items
+  lineItems.forEach(function(item) {
+    itemsSheet.appendRow([
+      prID,
+      item.description,
+      item.quantity,
+      item.uom,
+      item.unitPrice,
+      item.totalPrice
+      // Ensure this matches the columns in your 'Items' sheet
+    ]);
   });
 
   return { success: true, prID: prID };
@@ -725,7 +719,10 @@ function addVendorToMaster(vendor) {
     vendor.gstNumber,
     providingSites,
     vendor.vendorPanNo,
-    vendor.vendorAddress
+    vendor.vendorAddress,
+    vendor.vendorGSTCertificate,
+    vendor.vendorPANCard,
+    vendor.cancelledCheque
   ];
   sheet.appendRow(row);
   return vendorId;
