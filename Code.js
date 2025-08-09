@@ -509,16 +509,16 @@ function getRequisitionDetailsForPO(prID) {
   for (const row of reqData) {
     if (row[reqHeaders['Requisition ID']] === prID) {
       requisitionDetails = {
-        'Requisition ID': row[reqHeaders['Requisition ID']],
-        'Date of Requisition': row[reqHeaders['Date of Requisition']],
-        'Requested By': row[reqHeaders['Requested By']],
-        'Site': row[reqHeaders['Site']],
-        'Delivery Location': row[reqHeaders['Delivery Location']],
-        'Purchase Category': row[reqHeaders['Purchase Category']],
-        'Total Value Incl. GST': row[reqHeaders['Total Value Incl. GST']],
-        'Payment Terms': row[reqHeaders['Payment Terms']],
-        'Delivery Terms': row[reqHeaders['Delivery Terms']],
-        'Expected Delivery Date': row[reqHeaders['Expected Delivery Date']],
+        requisitionId: row[reqHeaders['Requisition ID']],
+        date: row[reqHeaders['Date of Requisition']],
+        requestedBy: row[reqHeaders['Requested By']],
+        site: row[reqHeaders['Site']],
+        deliveryLocation: row[reqHeaders['Delivery Location']],
+        purchaseCategory: row[reqHeaders['Purchase Category']],
+        totalValue: row[reqHeaders['Total Value Incl. GST']],
+        paymentTerms: row[reqHeaders['Payment Terms']],
+        deliveryTerms: row[reqHeaders['Delivery Terms']],
+        expectedDeliveryDate: row[reqHeaders['Expected Delivery Date']],
       };
 
       const vendorId = row[reqHeaders['Vendor ID']];
@@ -664,8 +664,18 @@ function submitPR(formData, lineItems) {
       contactPerson: formData.contactPerson,
       contactNumber: formData.contactNumber,
       emailId: formData.emailId,
-      // You may need to pass more fields from your form for a complete vendor profile
-      providingSites: [formData.site] 
+      providingSites: formData.providingSites.join(', '),
+      bankName: formData.bankName,
+      accHolderName: formData.accHolderName,
+      accNumber: formData.accNumber,
+      branchName: formData.branchName,
+      ifscCode: formData.ifscCode,
+      gstNumber: formData.gstNumber,
+      vendorPanNo: formData.vendorPanNo,
+      vendorAddress: formData.vendorAddress,
+      vendorGSTCertificate: formData.vendorGSTCertificate,
+      vendorPANCard: formData.vendorPANCard,
+      cancelledCheque: formData.cancelledCheque
     };
     vendorId = addVendorToMaster(newVendor);
   }
@@ -693,21 +703,25 @@ function submitPR(formData, lineItems) {
     '', // Approved PR Link
     '', // PDF Link
     '', // Approval Link(View)
-    formData.emailAddress, // Email Address
+    Session.getActiveUser().getEmail(), // Email Address
     formData.expectedDeliveryDate // Expected Delivery Date
   ];
   reqSheet.appendRow(masterRow);
 
   // Save line items
-  lineItems.forEach(function(item) {
+  lineItems.forEach((item, index) => {
+    const itemID = prID + '-' + (index + 1).toString().padStart(2, '0');
     itemsSheet.appendRow([
       prID,
-      item.description,
+      itemID,
+      item.itemName,
+      item.purpose,
       item.quantity,
       item.uom,
-      item.unitPrice,
-      item.totalPrice
-      // Ensure this matches the columns in your 'Items' sheet
+      item.rate,
+      item.gst,
+      item.warranty,
+      item.totalValue
     ]);
   });
 
@@ -786,7 +800,11 @@ function addVendorToMaster(vendor) {
     vendor.gstNumber,
     providingSites,
     vendor.vendorPanNo,
-    vendor.vendorAddress
+    vendor.vendorAddress,
+    vendor.vendorGSTCertificate,
+    vendor.vendorPANCard,
+    vendor.cancelledCheque,
+    Session.getActiveUser().getEmail()
   ];
   sheet.appendRow(row);
   return vendorId;
