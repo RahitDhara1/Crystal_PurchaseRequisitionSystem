@@ -219,6 +219,88 @@ function updateRequisitionStatus(prID, status) {
 //   return { pendingRequisitions: JSON.stringify(pendingRequisitions) };
 // }
 
+// function getPendingRequisitions() {
+//   const ss = SpreadsheetApp.getActiveSpreadsheet();
+//   const reqSheet = ss.getSheetByName('Requisitions');
+//   const itemsSheet = ss.getSheetByName('Items');
+
+//   if (!reqSheet || !itemsSheet) {
+//     throw new Error("Required sheets ('Requisitions', 'Items') not found.");
+//   }
+
+//   const reqHeaders = getHeaderMap(reqSheet);
+//   const itemHeaders = getHeaderMap(itemsSheet);
+
+//   const reqData = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, reqSheet.getLastColumn()).getValues();
+//   const itemsData = itemsSheet.getRange(2, 1, itemsSheet.getLastRow() - 1, itemsSheet.getLastColumn()).getValues();
+
+//   const pendingRequisitions = reqData
+//     .map((row, index) => ({ data: row, rowIndex: index + 2 }))
+//     .filter(r => r.data[reqHeaders['Current Status']] === 'Requisition Submitted for Approval')
+//     .map(r => {
+//       const reqRow = r.data;
+//       const prID = reqRow[reqHeaders['Requisition ID']];
+//       if (!prID) return null;
+
+//       const itemsForReq = itemsData
+//         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
+//         .map(itemRow => {
+//           const quantity = parseFloat(itemRow[itemHeaders['Quantity Required']]) || 0;
+//           const rate = parseFloat(itemRow[itemHeaders['Rate']]) || 0;
+//           const gst = parseFloat(itemRow[itemHeaders['GST']]) || 0;
+//           const subtotal = quantity * rate;
+//           const totalValue = subtotal + (subtotal * gst / 100);
+//           return {
+//             itemId: itemRow[itemHeaders['Item ID']],
+//             itemName: itemRow[itemHeaders['Item Name']],
+//             purpose: itemRow[itemHeaders['Purpose / Application']],
+//             quantity: quantity,
+//             uom: itemRow[itemHeaders['UOM']],
+//             rate: rate,
+//             gst: gst,
+//             warranty: itemRow[itemHeaders['Warranty, AMC']],
+//             subtotal: subtotal,
+//             totalValue: totalValue
+//           };
+//         });
+
+//       const vendorId = reqRow[reqHeaders['Vendor ID']];
+//       const vendorDetails = getVendorDetails(vendorId); 
+
+//       const vendor = vendorDetails ? {
+//         companyName: vendorDetails['COMPANY NAME'],
+//         contactPerson: vendorDetails['CONTACT PERSON'],
+//         contactNumber: vendorDetails['CONTACT NUMBER'],
+//         email: vendorDetails['EMAIL ID']
+//       } : {};
+
+//       const totalSubtotal = itemsForReq.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+//       const totalGST = itemsForReq.reduce((sum, item) => {
+//         const itemGST = (parseFloat(item.subtotal) || 0) * (parseFloat(item.gst) || 0) / 100;
+//         return sum + itemGST;
+//       }, 0);
+//       const grandTotal = totalSubtotal + totalGST;
+
+//       return {
+//         id: prID,
+//         date: reqRow[reqHeaders['Date of Requisition']],
+//         expectedDeliveryDate: reqRow[reqHeaders['Expected Delivery Date']],
+//         status: reqRow[reqHeaders['Current Status']],
+//         totalValue: grandTotal,
+//         totalSubtotal: totalSubtotal,
+//         totalGST: totalGST,
+//         purchaseCategory: reqRow[reqHeaders['Purchase Category']],
+//         requestedBy: reqRow[reqHeaders['Requested By']],
+//         site: reqRow[reqHeaders['Site']],
+//         vendor: vendor,
+//         items: itemsForReq,
+//         rowIndex: r.rowIndex
+//       };
+//     })
+//     .filter(req => req != null);
+
+//   return { pendingRequisitions: JSON.stringify(pendingRequisitions) };
+// }
 function getPendingRequisitions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
@@ -244,25 +326,17 @@ function getPendingRequisitions() {
 
       const itemsForReq = itemsData
         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
-        .map(itemRow => {
-          const quantity = parseFloat(itemRow[itemHeaders['Quantity Required']]) || 0;
-          const rate = parseFloat(itemRow[itemHeaders['Rate']]) || 0;
-          const gst = parseFloat(itemRow[itemHeaders['GST']]) || 0;
-          const subtotal = quantity * rate;
-          const totalValue = subtotal + (subtotal * gst / 100);
-          return {
-            itemId: itemRow[itemHeaders['Item ID']],
-            itemName: itemRow[itemHeaders['Item Name']],
-            purpose: itemRow[itemHeaders['Purpose / Application']],
-            quantity: quantity,
-            uom: itemRow[itemHeaders['UOM']],
-            rate: rate,
-            gst: gst,
-            warranty: itemRow[itemHeaders['Warranty, AMC']],
-            subtotal: subtotal,
-            totalValue: totalValue
-          };
-        });
+        .map(itemRow => ({
+          itemId: itemRow[itemHeaders['Item ID']],
+          itemName: itemRow[itemHeaders['Item Name']],
+          purpose: itemRow[itemHeaders['Purpose / Application']],
+          quantity: itemRow[itemHeaders['Quantity Required']],
+          uom: itemRow[itemHeaders['UOM']],
+          rate: itemRow[itemHeaders['Rate']],
+          gst: itemRow[itemHeaders['GST']],
+          warranty: itemRow[itemHeaders['Warranty, AMC']],
+          totalValue: itemRow[itemHeaders['Total Value (Incl. GST)']]
+        }));
 
       const vendorId = reqRow[reqHeaders['Vendor ID']];
       const vendorDetails = getVendorDetails(vendorId); 
@@ -274,9 +348,9 @@ function getPendingRequisitions() {
         email: vendorDetails['EMAIL ID']
       } : {};
 
-      const totalSubtotal = itemsForReq.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+      const totalSubtotal = itemsForReq.reduce((sum, item) => sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)), 0);
       const totalGST = itemsForReq.reduce((sum, item) => {
-        const itemGST = (parseFloat(item.subtotal) || 0) * (parseFloat(item.gst) || 0) / 100;
+        const itemGST = ((parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0)) * ((parseFloat(item.gst) || 0) / 100);
         return sum + itemGST;
       }, 0);
       const grandTotal = totalSubtotal + totalGST;
@@ -637,12 +711,65 @@ function getVendorDetails(vendorId) {
 // }
 
 // Handle PO form submission
+// function getRequisitionDetailsForPO(prID) {
+//   if (!prID) return null;
+//   const ss = SpreadsheetApp.getActiveSpreadsheet();
+//   const reqSheet = ss.getSheetByName('Requisitions');
+//   const itemsSheet = ss.getSheetByName('Items');
+//   if (!reqSheet || !itemsSheet) return null;
+
+//   const reqHeaders = getHeaderMap(reqSheet);
+//   const itemHeaders = getHeaderMap(itemsSheet);
+//   const reqData = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, reqSheet.getLastColumn()).getValues();
+//   const itemsData = itemsSheet.getRange(2, 1, itemsSheet.getLastRow() - 1, itemsSheet.getLastColumn()).getValues();
+
+//   let requisitionDetails = {};
+//   let found = false;
+
+//   for (const row of reqData) {
+//     if (row[reqHeaders['Requisition ID']] === prID) {
+//       requisitionDetails = {
+//         paymentTerms: row[reqHeaders['Payment Terms']],
+//         deliveryTerms: row[reqHeaders['Delivery Terms']],
+//         expectedDeliveryDate: row[reqHeaders['Expected Delivery Date']],
+//         site: row[reqHeaders['Site']],
+//         vendorRegistered: row[reqHeaders['Is Vendor Registered']],
+//         vendor: getVendorDetails(row[reqHeaders['Vendor ID']])
+//       };
+//       found = true;
+//       break;
+//     }
+//   }
+//   if (!found) return null;
+
+//   const itemsForReq = itemsData
+//     .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
+//     .map(itemRow => ({
+//       itemName: itemRow[itemHeaders['Item Name']],
+//       purpose: itemRow[itemHeaders['Purpose / Application']],
+//       quantity: itemRow[itemHeaders['Quantity Required']],
+//       uom: itemRow[itemHeaders['UOM']],
+//       rate: itemRow[itemHeaders['Rate']],
+//       gst: itemRow[itemHeaders['GST']],
+//       totalCost: itemRow[itemHeaders['Total Value (Incl. GST)']]
+//     }));
+
+//   requisitionDetails.items = itemsForReq;
+//   return requisitionDetails;
+// }
+
+// Replace the original `getRequisitionDetailsForPO` function
 function getRequisitionDetailsForPO(prID) {
-  if (!prID) return null;
+  if (!prID) {
+    throw new Error("Requisition ID is required.");
+  }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
   const itemsSheet = ss.getSheetByName('Items');
-  if (!reqSheet || !itemsSheet) return null;
+
+  if (!reqSheet || !itemsSheet) {
+    throw new Error("Required sheets ('Requisitions', 'Items') not found.");
+  }
 
   const reqHeaders = getHeaderMap(reqSheet);
   const itemHeaders = getHeaderMap(itemsSheet);
@@ -655,19 +782,40 @@ function getRequisitionDetailsForPO(prID) {
   for (const row of reqData) {
     if (row[reqHeaders['Requisition ID']] === prID) {
       requisitionDetails = {
+        requisitionId: row[reqHeaders['Requisition ID']],
+        date: row[reqHeaders['Date of Requisition']],
+        requestedBy: row[reqHeaders['Requested By']],
+        site: row[reqHeaders['Site']],
+        deliveryLocation: row[reqHeaders['Delivery Location']],
+        purchaseCategory: row[reqHeaders['Purchase Category']],
+        totalValue: row[reqHeaders['Total Value Incl. GST']],
         paymentTerms: row[reqHeaders['Payment Terms']],
         deliveryTerms: row[reqHeaders['Delivery Terms']],
         expectedDeliveryDate: row[reqHeaders['Expected Delivery Date']],
-        site: row[reqHeaders['Site']],
-        vendorRegistered: row[reqHeaders['Is Vendor Registered']],
-        vendor: getVendorDetails(row[reqHeaders['Vendor ID']])
+        isVendorRegistered: row[reqHeaders['Is the Vendor Registered with Us?']],
+        vendorGSTCertificate: row[reqHeaders['Vendor GST Certificate']],
+        vendorPANCard: row[reqHeaders['Vendor PAN Card']],
+        vendorCancelledCheque: row[reqHeaders['Cancelled Cheque']]
       };
+
+      const vendorId = row[reqHeaders['Vendor ID']];
+      if (vendorId) {
+        requisitionDetails.vendor = getVendorDetails(vendorId);
+        requisitionDetails.vendorId = vendorId;
+      } else {
+        requisitionDetails.vendor = {};
+        requisitionDetails.vendorId = '';
+      }
+      
       found = true;
       break;
     }
   }
-  if (!found) return null;
 
+  if (!found) {
+    throw new Error(`Requisition ${prID} not found.`);
+  }
+  
   const itemsForReq = itemsData
     .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
     .map(itemRow => ({
@@ -677,12 +825,49 @@ function getRequisitionDetailsForPO(prID) {
       uom: itemRow[itemHeaders['UOM']],
       rate: itemRow[itemHeaders['Rate']],
       gst: itemRow[itemHeaders['GST']],
-      totalCost: itemRow[itemHeaders['Total Value (Incl. GST)']]
+      totalCost: itemRow[itemHeaders['Total Value (Incl. GST)']] 
     }));
-
+  
   requisitionDetails.items = itemsForReq;
   return requisitionDetails;
 }
+// function submitPO(formData, lineItems) {
+//   const ss = SpreadsheetApp.getActiveSpreadsheet();
+//   const poSheet = ss.getSheetByName('PO_Master'); 
+//   const poHeaders = getHeaderMap(poSheet);
+
+//   if (!poSheet) {
+//     throw new Error("Sheet 'PO_Master' not found. Please check the sheet name in your Google Spreadsheet.");
+//   }
+
+//   // Use the PO Number provided by the user
+//   const poNumber = formData.poNumber;
+//   const vendorId = getVendorIdFromRequisition(formData.reqId);
+
+//   const totalValue = lineItems.reduce((sum, item) => sum + parseFloat(item.totalCost || 0), 0);
+
+//   // Create a new row array based on the provided column order
+//   const newRow = new Array(poSheet.getLastColumn()).fill('');
+//   newRow[poHeaders['Requisition ID']] = formData.reqId;
+//   newRow[poHeaders['PO No.']] = poNumber;
+//   newRow[poHeaders['Vendor ID']] = vendorId; // Adding Vendor ID
+//   newRow[poHeaders['PO Date']] = formData.poDate;
+//   newRow[poHeaders['PO Amount']] = totalValue.toFixed(2);
+//   newRow[poHeaders['Attach PO']] = formData.attachPO;
+//   newRow[poHeaders['PO Prepared By']] = formData.poPreparedBy;
+//   newRow[poHeaders['PO Status']] = 'Submitted';
+//   newRow[poHeaders['PO Remarks']] = '';
+  
+//   poSheet.appendRow(newRow);
+
+//   // Update the original requisition's status
+//   updateRequisitionStatus(formData.reqId, 'PO Submitted');
+
+//   return { success: true, poID: poNumber };
+// }
+
+// Helper function to get Vendor ID from Requisitions sheet
+// Replace the original `submitPO` function
 function submitPO(formData, lineItems) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const poSheet = ss.getSheetByName('PO_Master'); 
@@ -692,17 +877,15 @@ function submitPO(formData, lineItems) {
     throw new Error("Sheet 'PO_Master' not found. Please check the sheet name in your Google Spreadsheet.");
   }
 
-  // Use the PO Number provided by the user
   const poNumber = formData.poNumber;
   const vendorId = getVendorIdFromRequisition(formData.reqId);
 
   const totalValue = lineItems.reduce((sum, item) => sum + parseFloat(item.totalCost || 0), 0);
 
-  // Create a new row array based on the provided column order
   const newRow = new Array(poSheet.getLastColumn()).fill('');
   newRow[poHeaders['Requisition ID']] = formData.reqId;
   newRow[poHeaders['PO No.']] = poNumber;
-  newRow[poHeaders['Vendor ID']] = vendorId; // Adding Vendor ID
+  newRow[poHeaders['Vendor ID']] = vendorId;
   newRow[poHeaders['PO Date']] = formData.poDate;
   newRow[poHeaders['PO Amount']] = totalValue.toFixed(2);
   newRow[poHeaders['Attach PO']] = formData.attachPO;
@@ -712,13 +895,24 @@ function submitPO(formData, lineItems) {
   
   poSheet.appendRow(newRow);
 
-  // Update the original requisition's status
   updateRequisitionStatus(formData.reqId, 'PO Submitted');
 
   return { success: true, poID: poNumber };
 }
+// function getVendorIdFromRequisition(prID) {
+//   const ss = SpreadsheetApp.getActiveSpreadsheet();
+//   const reqSheet = ss.getSheetByName('Requisitions');
+//   const headers = getHeaderMap(reqSheet);
+//   const data = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, reqSheet.getLastColumn()).getValues();
+//   for (let i = 0; i < data.length; i++) {
+//     if (data[i][headers['Requisition ID']] === prID) {
+//       return data[i][headers['Vendor ID']];
+//     }
+//   }
+//   return null;
+// }
 
-// Helper function to get Vendor ID from Requisitions sheet
+// Add this new function
 function getVendorIdFromRequisition(prID) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
