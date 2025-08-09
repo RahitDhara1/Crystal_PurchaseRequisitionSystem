@@ -223,7 +223,7 @@ function requisitionFormPage(user) {
                   <div id="registeredVendorFields" class="form-grid hidden">
                     <div class="form-field">
                       <label>Select Registered Vendor:
-                        <select id="vendorSelect" name="vendorCompanyName" onchange="fillVendorDetails()" required>
+                        <select id="vendorSelect" name="vendorId" onchange="fillVendorDetails()" required>
                           <option value="">Select Vendor...</option>
                         </select>
                       </label>
@@ -241,7 +241,7 @@ function requisitionFormPage(user) {
                     <div class="form-field"><label>Providing Sites: <input type="text" name="providingSites" id="providingSites" readonly></label></div>
                     <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo" id="vendorPanNo" readonly></label></div>
                     <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress" id="vendorAddress" readonly></label></div>
-                  </div>
+                    </div>
                   <div id="unregisteredVendorFields" class="form-grid hidden">
                     <div class="form-field"><label>Company Name: <input type="text" name="companyName" required></label></div>
                     <div class="form-field"><label>Contact Person: <input type="text" name="contactPerson" required></label></div>
@@ -253,28 +253,16 @@ function requisitionFormPage(user) {
                     <div class="form-field"><label>Branch Name: <input type="text" name="branchName" required></label></div>
                     <div class="form-field"><label>IFSC Code: <input type="text" name="ifscCode" required></label></div>
                     <div class="form-field"><label>GST Number: <input type="text" name="gstNumber"></label></div>
-                    <div class="form-field">
-                      <label>Providing Sites:</label>
-                      <div id="providingSitesCheckboxes">
-                        <label><input type="checkbox" name="providingSites" value="Bhubaneswar"> Bhubaneswar</label>
-                        <label><input type="checkbox" name="providingSites" value="Detroj"> Detroj</label>
-                        <label><input type="checkbox" name="providingSites" value="Dhulagarh"> Dhulagarh</label>
-                        <label><input type="checkbox" name="providingSites" value="Kheda"> Kheda</label>
-                        <label><input type="checkbox" name="providingSites" value="Kolkata"> Kolkata</label>
-                        <label><input type="checkbox" name="providingSites" value="Noida"> Noida</label>
-                        <label><input type="checkbox" name="providingSites" value="Pune"> Pune</label>
-                      </div>
-                    </div>
                     <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo"></label></div>
                     <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress"></label></div>
+                    <div class="form-field"><label>Vendor GST Certificate: <input type="file" name="vendorGSTCertificate" required></label></div>
+                    <div class="form-field"><label>Vendor PAN Card: <input type="file" name="vendorPANCard" required></label></div>
+                    <div class="form-field"><label>Cancelled Cheque: <input type="file" name="cancelledCheque" required></label></div>
                   </div>
                 </div>
                 <div class="section">
                     <h3>Attachments & Delivery</h3>
                     <div class="form-grid">
-                        <div class="form-field"><label>Vendor GST Certificate: <input type="file" name="vendorGSTCertificate"></label></div>
-                        <div class="form-field"><label>Vendor PAN Card: <input type="file" name="vendorPANCard"></label></div>
-                        <div class="form-field"><label>Cancelled Cheque: <input type="file" name="cancelledCheque"></label></div>
                         <div class="form-field"><label>Upload Quotation/Final Agreed PI: <input type="file" name="quotationPI" required></label></div>
                         <div class="form-field"><label>Supporting Docs: <input type="file" name="supportingDocs"></label></div>
                         <div class="form-field"><label>Payment Terms: <input type="text" name="paymentTerms" required></label></div>
@@ -361,17 +349,28 @@ function requisitionFormPage(user) {
 
       function toggleVendorFields() {
         const isRegistered = document.getElementById('isVendorRegistered').value === 'Yes';
+        const vendorDetailsSection = document.getElementById('vendorDetailsSection');
+        const registeredFields = document.getElementById('registeredVendorFields');
+        const unregisteredFields = document.getElementById('unregisteredVendorFields');
         
-        document.getElementById('vendorDetailsSection').classList.toggle('hidden', !isRegistered);
-        document.getElementById('registeredVendorFields').classList.toggle('hidden', !isRegistered);
-        document.getElementById('unregisteredVendorFields').classList.toggle('hidden', isRegistered);
+        vendorDetailsSection.classList.remove('hidden');
+        
+        // Hide/show sections based on selection
+        registeredFields.classList.toggle('hidden', !isRegistered);
+        unregisteredFields.classList.toggle('hidden', isRegistered);
 
-        document.getElementById('vendorSelect').required = isRegistered;
+        // Manage 'required' attributes
+        const allRegisteredFields = registeredFields.querySelectorAll('[required]');
+        allRegisteredFields.forEach(field => { field.required = isRegistered; });
 
-        const unregisteredFields = document.querySelectorAll('#unregisteredVendorFields [required]');
-        unregisteredFields.forEach(field => {
-          field.required = !isRegistered;
-        });
+        const allUnregisteredFields = unregisteredFields.querySelectorAll('[required]');
+        allUnregisteredFields.forEach(field => { field.required = !isRegistered; });
+        
+        if (!isRegistered) {
+          document.querySelectorAll('#unregisteredVendorFields input[type="file"]').forEach(fileInput => {
+            fileInput.required = true;
+          });
+        }
       }
 
       function fillVendorDetails() {
@@ -490,39 +489,37 @@ function requisitionFormPage(user) {
             supportingDocs: form.supportingDocs
         };
         
-        // This is a simplified example. A more robust solution would handle multiple files.
-        const quotationFile = fileUploads.quotationPI.files[0];
-        const supportingDocsFile = fileUploads.supportingDocs.files[0];
-
         const filePromises = [];
-        if (quotationFile) {
-            filePromises.push(toBase64(quotationFile).then(base64 => {
-                return new Promise(resolve => {
-                    google.script.run
-                        .withSuccessHandler(url => resolve({ name: 'quotationPI', url: url }))
-                        .withFailureHandler(() => resolve({ name: 'quotationPI', url: '' }))
-                        .uploadFile({ name: quotationFile.name, mimeType: quotationFile.type, base64: base64 }, 'Quotation_Attachments');
-                });
-            }));
+        const filesToUpload = [
+          { input: form.quotationPI, folder: 'Quotation_Attachments', formDataKey: 'quotationPI' },
+          { input: form.supportingDocs, folder: 'Supporting_Documents', formDataKey: 'supportingDocs' }
+        ];
+
+        if (formData.isVendorRegistered === 'No') {
+          filesToUpload.push({ input: form.vendorGSTCertificate, folder: 'Vendor_GST', formDataKey: 'vendorGSTCertificate' });
+          filesToUpload.push({ input: form.vendorPANCard, folder: 'Vendor_PAN', formDataKey: 'vendorPANCard' });
+          filesToUpload.push({ input: form.cancelledCheque, folder: 'Cancelled_Cheque', formDataKey: 'cancelledCheque' });
         }
 
-        if (supportingDocsFile) {
-             filePromises.push(toBase64(supportingDocsFile).then(base64 => {
-                return new Promise(resolve => {
-                    google.script.run
-                        .withSuccessHandler(url => resolve({ name: 'supportingDocs', url: url }))
-                        .withFailureHandler(() => resolve({ name: 'supportingDocs', url: '' }))
-                        .uploadFile({ name: supportingDocsFile.name, mimeType: supportingDocsFile.type, base64: base64 }, 'Supporting_Documents');
-                });
-            }));
-        }
+        filesToUpload.forEach(fileObj => {
+          const fileInput = fileObj.input;
+          if (fileInput && fileInput.files.length > 0) {
+            filePromises.push(toBase64(fileInput.files[0]).then(base64 => new Promise(resolve => {
+              google.script.run
+                .withSuccessHandler(url => {
+                  formData[fileObj.formDataKey] = url;
+                  resolve();
+                })
+                .withFailureHandler(() => {
+                  formData[fileObj.formDataKey] = '';
+                  resolve();
+                })
+                .uploadFile({ name: fileInput.files[0].name, mimeType: fileInput.files[0].type, base64: base64 }, fileObj.folder);
+            })));
+          }
+        });
 
-        Promise.all(filePromises).then(results => {
-            results.forEach(result => {
-                if (result.name === 'quotationPI') formData.quotationPI = result.url;
-                if (result.name === 'supportingDocs') formData.supportingDocs = result.url;
-            });
-            
+        Promise.all(filePromises).then(() => {
             // Call the server-side function
             google.script.run
                 .withSuccessHandler(resp => {
