@@ -626,7 +626,7 @@ function submitPR(formData, lineItems) {
     '', // Approved PR Link
     '', // PDF Link
     '', // Approval Link(View)
-    formData.emailAddress, // Email Address
+    Session.getActiveUser().getEmail(), // Email Address
     formData.expectedDeliveryDate // Expected Delivery Date
   ];
   reqSheet.appendRow(masterRow);
