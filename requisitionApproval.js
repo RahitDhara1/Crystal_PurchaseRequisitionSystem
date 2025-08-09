@@ -175,11 +175,54 @@ function requisitionApprovalPage(data) {
         }
         .btn-approve { background-color: #28a745; }
         .btn-reject { background-color: #dc3545; }
+
+        /* Loader styles */
+        #loader {
+          display: none;
+          position: fixed;
+          top: 0; left: 0; width: 100vw; height: 100vh;
+          background: rgba(255,255,255,0.6);
+          z-index: 9999;
+          align-items: center;
+          justify-content: center;
+        }
+        #loader .spinner {
+          border: 6px solid #f3f3f3;
+          border-top: 6px solid var(--primary-color);
+          border-radius: 50%;
+          width: 60px;
+          height: 60px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        #loader span {
+          display: block;
+          margin-top: 16px;
+          color: var(--primary-color);
+          font-weight: 600;
+          font-size: 1.1rem;
+          text-align: center;
+        }
+        #msg {
+            margin-top: 20px;
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+        .success { color: #22c55e; background-color: #dcfce7; }
+        .error { color: #ef4444; background-color: #fee2e2; }
+
     </style>
 
     <div class="container">
         <h1>Pending Approvals</h1>
         <div id="requisition-list" class="requisition-list">${listHtml}</div>
+        <div id="msg"></div>
     </div>
 
     <div class="modal-overlay" id="details-modal">
@@ -228,9 +271,12 @@ function requisitionApprovalPage(data) {
         </div>
     </div>
 
+    <div id="loader"><div style="display:flex;flex-direction:column;align-items:center;"><div class="spinner"></div><span id="loader-text">Loading...</span></div></div>
     <script>
         const requisitions = ${JSON.stringify(pendingRequisitions)};
         const modal = document.getElementById('details-modal');
+        const msgDiv = document.getElementById('msg');
+        const loader = document.getElementById('loader');
 
         window.showDetails = function(prID) {
             const req = requisitions.find(r => r.id === prID);
@@ -281,6 +327,16 @@ function requisitionApprovalPage(data) {
             document.getElementById('modal-remarks').value = '';
         }
 
+        window.showLoader = function(text) {
+            document.getElementById('loader-text').textContent = text;
+            loader.style.display = 'flex';
+        }
+
+        window.hideLoader = function() {
+            loader.style.display = 'none';
+        }
+
+
         window.handleApproval = function(prID, action, fromCard = false) {
             const remarks = fromCard ? '' : document.getElementById('modal-remarks').value;
             
@@ -290,23 +346,32 @@ function requisitionApprovalPage(data) {
             }
 
             const card = document.getElementById('card-' + prID);
-            card.classList.add('processing');
+            showLoader(\`Processing PR \${prID}...\`);
+            
             if (!fromCard) window.hideModal();
 
             google.script.run
                 .withSuccessHandler(response => {
+                    hideLoader();
+                    msgDiv.className = 'success';
+                    msgDiv.innerText = \`Requisition \${prID} has been successfully \${action}.\`;
+                    msgDiv.style.display = 'block';
+
                     card.style.transition = 'opacity 0.5s ease';
                     card.style.opacity = '0';
                     setTimeout(() => {
                         card.remove();
-                        if (document.querySelectorAll('.card:not(.no-pending)').length === 0) {
+                        if (document.querySelectorAll('.requisition-card').length === 0) {
                             document.getElementById('requisition-list').innerHTML = '<div class="card no-pending"><p>No requisitions are currently pending approval.</p></div>';
                         }
                     }, 500);
                 })
                 .withFailureHandler(error => {
-                    alert('An error occurred: ' + error.message);
-                    card.classList.remove('processing');
+                    hideLoader();
+                    msgDiv.className = 'error';
+                    msgDiv.innerText = 'An error occurred: ' + error.message;
+                    msgDiv.style.display = 'block';
+                    card.classList.removef('processing');
                 })
                 .processApproval(prID, action, remarks);
         }
