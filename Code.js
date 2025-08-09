@@ -164,6 +164,61 @@ function updateRequisitionStatus(prID, status) {
 //   cache.put('pendingRequisitions', JSON.stringify(result), 120); 
 //   return result;
 // }
+// function getPendingRequisitions() {
+//   const ss = SpreadsheetApp.getActiveSpreadsheet();
+//   const reqSheet = ss.getSheetByName('Requisitions');
+//   const itemsSheet = ss.getSheetByName('Items');
+
+//   if (!reqSheet || !itemsSheet) {
+//     throw new Error("Required sheets ('Requisitions', 'Items') not found.");
+//   }
+
+//   const reqHeaders = getHeaderMap(reqSheet);
+//   const itemHeaders = getHeaderMap(itemsSheet);
+
+//   const reqData = reqSheet.getRange(2, 1, reqSheet.getLastRow() - 1, reqSheet.getLastColumn()).getValues();
+//   const itemsData = itemsSheet.getRange(2, 1, itemsSheet.getLastRow() - 1, itemsSheet.getLastColumn()).getValues();
+
+//   const pendingRequisitions = reqData
+//     .map((row, index) => ({ data: row, rowIndex: index + 2 }))
+//     .filter(r => r.data[reqHeaders['Current Status']] === 'Requisition Submitted for Approval')
+//     .map(r => {
+//       const reqRow = r.data;
+//       const prID = reqRow[reqHeaders['Requisition ID']];
+//       if (!prID) return null;
+
+//       const itemsForReq = itemsData
+//         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
+//         .map(itemRow => ({
+//           description: itemRow[itemHeaders['Item Description']],
+//           quantity: itemRow[itemHeaders['Quantity']],
+//           uom: itemRow[itemHeaders['UOM']],
+//           unitPrice: itemRow[itemHeaders['Unit Price']],
+//           totalPrice: itemRow[itemHeaders['Total Price']],
+//         }));
+
+//       const vendorId = reqRow[reqHeaders['Vendor ID']];
+//       const vendor = getVendorDetails(vendorId); // Fetch vendor details
+
+//       return {
+//         id: prID,
+//         date: reqRow[reqHeaders['Date of Requisition']],
+//         expectedDeliveryDate: reqRow[reqHeaders['Expected Delivery Date']],
+//         status: reqRow[reqHeaders['Current Status']],
+//         totalValue: reqRow[reqHeaders['Total Value Incl. GST']],
+//         purchaseCategory: reqRow[reqHeaders['Purchase Category']],
+//         requestedBy: reqRow[reqHeaders['Requested By']],
+//         site: reqRow[reqHeaders['Site']],
+//         vendor: vendor,
+//         items: itemsForReq,
+//         rowIndex: r.rowIndex
+//       };
+//     })
+//     .filter(req => req != null);
+
+//   return { pendingRequisitions: JSON.stringify(pendingRequisitions) };
+// }
+
 function getPendingRequisitions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const reqSheet = ss.getSheetByName('Requisitions');
@@ -189,23 +244,51 @@ function getPendingRequisitions() {
 
       const itemsForReq = itemsData
         .filter(itemRow => itemRow[itemHeaders['Requisition ID']] === prID)
-        .map(itemRow => ({
-          description: itemRow[itemHeaders['Item Description']],
-          quantity: itemRow[itemHeaders['Quantity']],
-          uom: itemRow[itemHeaders['UOM']],
-          unitPrice: itemRow[itemHeaders['Unit Price']],
-          totalPrice: itemRow[itemHeaders['Total Price']],
-        }));
+        .map(itemRow => {
+          const quantity = parseFloat(itemRow[itemHeaders['Quantity Required']]) || 0;
+          const rate = parseFloat(itemRow[itemHeaders['Rate']]) || 0;
+          const gst = parseFloat(itemRow[itemHeaders['GST']]) || 0;
+          const subtotal = quantity * rate;
+          const totalValue = subtotal + (subtotal * gst / 100);
+          return {
+            itemId: itemRow[itemHeaders['Item ID']],
+            itemName: itemRow[itemHeaders['Item Name']],
+            purpose: itemRow[itemHeaders['Purpose / Application']],
+            quantity: quantity,
+            uom: itemRow[itemHeaders['UOM']],
+            rate: rate,
+            gst: gst,
+            warranty: itemRow[itemHeaders['Warranty, AMC']],
+            subtotal: subtotal,
+            totalValue: totalValue
+          };
+        });
 
       const vendorId = reqRow[reqHeaders['Vendor ID']];
-      const vendor = getVendorDetails(vendorId); // Fetch vendor details
+      const vendorDetails = getVendorDetails(vendorId); 
+
+      const vendor = vendorDetails ? {
+        companyName: vendorDetails['COMPANY NAME'],
+        contactPerson: vendorDetails['CONTACT PERSON'],
+        contactNumber: vendorDetails['CONTACT NUMBER'],
+        email: vendorDetails['EMAIL ID']
+      } : {};
+
+      const totalSubtotal = itemsForReq.reduce((sum, item) => sum + (parseFloat(item.subtotal) || 0), 0);
+      const totalGST = itemsForReq.reduce((sum, item) => {
+        const itemGST = (parseFloat(item.subtotal) || 0) * (parseFloat(item.gst) || 0) / 100;
+        return sum + itemGST;
+      }, 0);
+      const grandTotal = totalSubtotal + totalGST;
 
       return {
         id: prID,
         date: reqRow[reqHeaders['Date of Requisition']],
         expectedDeliveryDate: reqRow[reqHeaders['Expected Delivery Date']],
         status: reqRow[reqHeaders['Current Status']],
-        totalValue: reqRow[reqHeaders['Total Value Incl. GST']],
+        totalValue: grandTotal,
+        totalSubtotal: totalSubtotal,
+        totalGST: totalGST,
         purchaseCategory: reqRow[reqHeaders['Purchase Category']],
         requestedBy: reqRow[reqHeaders['Requested By']],
         site: reqRow[reqHeaders['Site']],
