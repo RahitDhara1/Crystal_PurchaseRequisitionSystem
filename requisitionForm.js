@@ -253,7 +253,12 @@ function requisitionFormPage(user) {
                     <div class="form-field"><label>Branch Name: <input type="text" name="branchName" required></label></div>
                     <div class="form-field"><label>IFSC Code: <input type="text" name="ifscCode" required></label></div>
                     <div class="form-field"><label>GST Number: <input type="text" name="gstNumber"></label></div>
-                    <div class="form-field">
+                    <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo"></label></div>
+                    <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress"></label></div>
+                    <div class="form-field"><label>Vendor GST Certificate: <input type="file" name="vendorGSTCertificate" required></label></div>
+                    <div class="form-field"><label>Vendor PAN Card: <input type="file" name="vendorPANCard" required></label></div>
+                    <div class="form-field"><label>Cancelled Cheque: <input type="file" name="cancelledCheque" required></label></div>
+                    <div class="form-field" style="grid-column: 1 / -1;">
                       <label>Providing Sites:</label>
                       <div id="providingSitesCheckboxes">
                         <label><input type="checkbox" name="providingSites" value="Bhubaneswar"> Bhubaneswar</label>
@@ -265,11 +270,6 @@ function requisitionFormPage(user) {
                         <label><input type="checkbox" name="providingSites" value="Pune"> Pune</label>
                       </div>
                     </div>
-                    <div class="form-field"><label>Vendor PAN No: <input type="text" name="vendorPanNo"></label></div>
-                    <div class="form-field"><label>Vendor Address: <input type="text" name="vendorAddress"></label></div>
-                    <div class="form-field"><label>Vendor GST Certificate: <input type="file" name="vendorGSTCertificate" required></label></div>
-                    <div class="form-field"><label>Vendor PAN Card: <input type="file" name="vendorPANCard" required></label></div>
-                    <div class="form-field"><label>Cancelled Cheque: <input type="file" name="cancelledCheque" required></label></div>
                   </div>
                 </div>
                 <div class="section">
