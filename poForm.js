@@ -122,7 +122,6 @@ function poFormPage(user) {
             </div>
           </div>
         </div>
-        <!-- Vendor Details Section -->
         <div class="section" id="vendorDetailsSection">
           <h3>Vendor Details</h3>
           <div class="form-grid">
@@ -189,20 +188,25 @@ function poFormPage(user) {
       showLoader('Fetching Details...');
       google.script.run
         .withSuccessHandler(function(details) {
+          if (!details) {
+            document.getElementById('msg').textContent = 'Error: Requisition details not found.';
+            hideLoader();
+            return;
+          }
           document.getElementById('paymentTerm').value = details.paymentTerms || '';
           document.getElementById('deliveryTerm').value = details.deliveryTerms || '';
-          document.getElementById('expectedDeliveryDate').value = details.expectedDeliveryDate || '';
+          document.getElementById('expectedDeliveryDate').value = details.expectedDeliveryDate ? new Date(details.expectedDeliveryDate).toISOString().split('T')[0] : '';
           document.getElementById('site').value = details.site || '';
 
           // Vendor details
           document.getElementById('vendorRegistered').value = details.vendorRegistered || '';
-          document.getElementById('vendorCompanyName').value = details.vendorCompanyName || '';
-          document.getElementById('vendorContactPerson').value = details.vendorContactPerson || '';
-          document.getElementById('vendorContactNumber').value = details.vendorContactNumber || '';
-          document.getElementById('vendorEmail').value = details.vendorEmail || '';
-          document.getElementById('vendorGST').value = details.vendorGSTCertificate || '';
-          document.getElementById('vendorPAN').value = details.vendorPANCard || '';
-          document.getElementById('vendorCheque').value = details.vendorCancelledCheque || '';
+          document.getElementById('vendorCompanyName').value = (details.vendor && details.vendor['COMPANY NAME']) ? details.vendor['COMPANY NAME'] : '';
+          document.getElementById('vendorContactPerson').value = (details.vendor && details.vendor['CONTACT PERSON']) ? details.vendor['CONTACT PERSON'] : '';
+          document.getElementById('vendorContactNumber').value = (details.vendor && details.vendor['CONTACT NUMBER']) ? details.vendor['CONTACT NUMBER'] : '';
+          document.getElementById('vendorEmail').value = (details.vendor && details.vendor['EMAIL ID']) ? details.vendor['EMAIL ID'] : '';
+          document.getElementById('vendorGST').value = (details.vendor && details.vendor['GST Certificate']) ? details.vendor['GST Certificate'] : '';
+          document.getElementById('vendorPAN').value = (details.vendor && details.vendor['Pan Card']) ? details.vendor['Pan Card'] : '';
+          document.getElementById('vendorCheque').value = (details.vendor && details.vendor['Cancelled Cheque']) ? details.vendor['Cancelled Cheque'] : '';
 
           if (details.items && details.items.length > 0) {
             details.items.forEach(item => {
@@ -214,7 +218,7 @@ function poFormPage(user) {
                 <td><input type="text" name="uom" value="\${item.uom}" readonly></td>
                 <td><input type="number" name="rate" value="\${item.rate}" readonly></td>
                 <td><input type="number" name="gst" value="\${item.gst}" readonly></td>
-                <td><input type="number" name="totalCost" value="\${parseFloat(item.totalCost).toFixed(2)}" readonly></td>
+                <td><input type="number" name="totalCost" value="\${parseFloat(item.totalCost || 0).toFixed(2)}" readonly></td>
               \`;
             });
           } else {
