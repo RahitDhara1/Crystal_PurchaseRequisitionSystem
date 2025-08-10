@@ -34,6 +34,7 @@
             <a href="#" class="<?= activePage === 'grn' ? 'active' : '' ?>"><i class="fas fa-receipt"></i> GRN</a>
             <!-- <a href="#" class="<?= activePage === 'all' ? 'active' : '' ?>"><i class="fas fa-list-ul"></i> All Requisitions</a> -->
             <a href="<?!= ScriptApp.getService().getUrl() ?>?page=all" class="<?= activePage === 'all' ? 'active' : '' ?>"><i class="fas fa-list-ul"></i> All Requisitions</a>
+            <a href="<?!= ScriptApp.getService().getUrl() ?>?page=paymentSubmission" class="<?= activePage === 'paymentSubmission' ? 'active' : '' ?>"><i class="fas fa-dollar-sign"></i> Payment Submission</a>
         </nav>
     </div>
 

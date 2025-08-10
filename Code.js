@@ -31,7 +31,11 @@ function doGet(e) {
   } else if (page === 'allRequisitions') {
     pageTitle = 'All Requisitions';
     pageContent = allRequisitionsPage();
-  } else {
+  } else if (page === 'paymentSubmission') { // New condition for payment page
+    pageTitle = 'Payment Submission';
+    pageContent = paymentSubmissionPage();
+  } 
+  else {
     template = HtmlService.createTemplateFromFile('home');
     template.stats = getDashboardStats();
     pageContent = template.evaluate().getContent();
@@ -1131,4 +1135,29 @@ function addVendorToMaster(vendor) {
   ];
   sheet.appendRow(row);
   return vendorId;
+}
+
+function submitPayment(formData) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const paymentSheet = ss.getSheetByName('Payment_Master');
+  const headers = getHeaderMap(paymentSheet);
+
+  if (!paymentSheet) {
+    throw new Error("Sheet 'Payment_Master' not found. Please check the sheet name in your Google Spreadsheet.");
+  }
+
+  const newRow = [];
+  newRow[headers['Timestamp']] = new Date();
+  newRow[headers['Email address']] = Session.getActiveUser().getEmail();
+  newRow[headers['PO Number']] = formData.poNumber;
+  newRow[headers['Amount Paid']] = formData.amountPaid;
+  newRow[headers['Payment Date']] = formData.paymentDate;
+  newRow[headers['Payment Mode']] = formData.paymentMode;
+  newRow[headers['UTR Number']] = formData.utrNumber;
+  newRow[headers['Remarks']] = formData.remarks;
+  newRow[headers['Current Po No']] = formData.poNumber;
+
+  paymentSheet.appendRow(newRow);
+
+  return { success: true, message: 'Payment submitted successfully!' };
 }
